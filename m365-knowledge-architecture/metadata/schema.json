@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://tenant.sharepoint.com/schemas/km-document-metadata/v1.0.0",
+  "$id": "https://octaveint.sharepoint.com/schemas/km-document-metadata/v1.0.0",
   "title": "KM Document Metadata",
   "description": "API-ready metadata schema for the M365 Knowledge Automation system. Used by the AI classification pipeline, Power Automate flows, and SPO REST API.",
   "type": "object",

@@ -18,7 +18,7 @@ Tenant Root
 
 | Property         | Value                                      |
 |------------------|--------------------------------------------|
-| URL              | `https://tenant.sharepoint.com/sites/knowledge-hub` |
+| URL              | `https://octaveint.sharepoint.com/sites/DaniandEthan` |
 | Purpose          | Central discovery portal; search scope for all spoke sites |
 | Template         | Communication Site                         |
 | Hub registration | Yes — all spoke sites associate to this hub |
@@ -35,7 +35,7 @@ Tenant Root
 
 | Property | Value |
 |----------|-------|
-| URL      | `https://tenant.sharepoint.com/sites/okr-strategy` |
+| URL      | `https://octaveint.sharepoint.com/sites/DaniandEthan` |
 | Purpose  | Canonical OKR definitions, strategic documents, exec presentations |
 | Template | Team Site |
 | Hub      | Associated to `knowledge-hub` |
@@ -48,7 +48,7 @@ Tenant Root
 
 | Property | Value |
 |----------|-------|
-| URL      | `https://tenant.sharepoint.com/sites/ops-excellence` |
+| URL      | `https://octaveint.sharepoint.com/sites/DaniandEthan` |
 | Purpose  | Process docs, SOPs, meeting transcripts, operational email archives |
 | Template | Team Site |
 | Hub      | Associated to `knowledge-hub` |
@@ -61,7 +61,7 @@ Tenant Root
 
 | Property | Value |
 |----------|-------|
-| URL      | `https://tenant.sharepoint.com/sites/product-pricing` |
+| URL      | `https://octaveint.sharepoint.com/sites/DaniandEthan` |
 | Purpose  | Pricebooks, SKU catalogs, quotes, product specs |
 | Template | Team Site |
 | Hub      | Associated to `knowledge-hub` |
@@ -74,7 +74,7 @@ Tenant Root
 
 | Property | Value |
 |----------|-------|
-| URL      | `https://tenant.sharepoint.com/sites/customer-success` |
+| URL      | `https://octaveint.sharepoint.com/sites/DaniandEthan` |
 | Purpose  | Customer-facing materials, case studies, onboarding docs |
 | Template | Team Site |
 | Hub      | Associated to `knowledge-hub` |
@@ -87,7 +87,7 @@ Tenant Root
 
 | Property | Value |
 |----------|-------|
-| URL      | `https://tenant.sharepoint.com/sites/archive` |
+| URL      | `https://octaveint.sharepoint.com/sites/DaniandEthan` |
 | Purpose  | Immutable records, retention-managed content, legal hold |
 | Template | Team Site (locked down) |
 | Hub      | Associated to `knowledge-hub` |

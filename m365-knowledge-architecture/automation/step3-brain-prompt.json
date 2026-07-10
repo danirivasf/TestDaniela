@@ -1,0 +1,125 @@
+{
+  "_comment": "The reusable classification brain. Plug this into Power Automate HTTP actions, Copilot extensions, or any API call. Replace {{content}} at runtime.",
+
+  "llm_request": {
+    "model": "claude-opus-4-8",
+    "max_tokens": 1024,
+    "temperature": 0,
+    "system": "You are an enterprise knowledge classification engine. Your outputs are consumed directly by automated systems — always return strict JSON with no additional text, markdown fences, or explanation outside the JSON object.",
+    "messages": [
+      {
+        "role": "user",
+        "content": "You are an enterprise knowledge classification engine.\n\nYour job:\nAnalyze the input and map it to company OKRs.\n\nINPUT:\n{{content}}\n\nOUTPUT (strict JSON only — no markdown, no preamble, no explanation outside the JSON):\n{\n  \"summary\": \"2-3 sentence business summary of the content\",\n  \"keywords\": [\"keyword1\", \"keyword2\", \"keyword3\"],\n  \"objective\": \"exact objective name from the allowed list\",\n  \"key_result\": \"most relevant key result\",\n  \"project\": \"project name if identifiable, otherwise null\",\n  \"content_type\": \"one of: Email | Attachment | Meeting Transcript | Spreadsheet | Presentation | Report | Contract | SOP | Other\",\n  \"confidence\": 0.0,\n  \"reasoning\": \"1-2 sentence explanation of why this OKR was chosen\"\n}\n\nAllowed Objectives (use exact strings):\n- Increase Revenue\n- Improve Operational Efficiency\n- Accelerate Product Innovation\n- Improve Customer Success\n\nExample Key Results:\n- Achieve $5M ARR by Q4\n- Improve win rate to 35%\n- Expand to 3 new markets\n- Reduce quote cycle time by 30%\n- Cut manual data entry by 50%\n- Achieve 99.5% system uptime\n- Launch 2 new SKUs by Q3\n- Reduce time-to-market to 60 days\n\nRules:\n- Prefer high precision over guessing — lower confidence when uncertain\n- Use business language in summary\n- keywords array: 5-10 terms, lowercase\n- confidence: float between 0.0 and 1.0\n- If content is clearly off-topic or personal, set confidence to 0.1 and objective to the closest match\n- Never return null for required fields — use 'Other' or 'Unknown' as fallbacks"
+      }
+    ]
+  },
+
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ClassificationOutput",
+    "type": "object",
+    "required": ["summary", "keywords", "objective", "key_result", "content_type", "confidence", "reasoning"],
+    "properties": {
+      "summary": {
+        "type": "string",
+        "description": "2-3 sentence business summary"
+      },
+      "keywords": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "objective": {
+        "type": "string",
+        "enum": [
+          "Increase Revenue",
+          "Improve Operational Efficiency",
+          "Accelerate Product Innovation",
+          "Improve Customer Success"
+        ]
+      },
+      "key_result": {
+        "type": "string"
+      },
+      "project": {
+        "type": ["string", "null"]
+      },
+      "content_type": {
+        "type": "string",
+        "enum": ["Email", "Attachment", "Meeting Transcript", "Spreadsheet", "Presentation", "Report", "Contract", "SOP", "Other"]
+      },
+      "confidence": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0
+      },
+      "reasoning": {
+        "type": "string"
+      }
+    }
+  },
+
+  "example_inputs": [
+    {
+      "_scenario": "Pricebook email with Excel attachment",
+      "content": "Subject: Updated Pricebook Q3 2026 — SKU list revised\nFrom: pricing@contoso.com\nBody: Hi team, attaching the revised pricebook for Q3. Key changes: 3 new SKUs added (SKU-4421, SKU-4422, SKU-4423), 12% price increase on tier-2 products. Please review before the sales meeting on Thursday.\nAttachment: Pricebook_Q3_2026.xlsx (contains columns: SKU, Product Name, List Price, Discount Tier, Margin%)"
+    },
+    {
+      "_scenario": "Teams meeting transcript",
+      "content": "Meeting: Q2 Pipeline Review — July 9 2026\nAttendees: Sales Director, 3 AEs, RevOps\nTranscript excerpt: '...our win rate dropped to 28% last quarter, main issue is quote turnaround — taking 8 days average vs competitor at 3 days. We need to fix the approval workflow. The CPQ integration should help. Target is to get back to 35% win rate by end of Q3...'"
+    },
+    {
+      "_scenario": "IT incident report",
+      "content": "Subject: P1 Incident Report — CRM Outage July 8\nDuration: 4.5 hours\nImpact: Sales team unable to access Salesforce, ~120 users affected\nRoot cause: Database failover misconfiguration\nResolution: Rolled back config, restored service\nMTTR: 4.5 hours (SLA target: 2 hours)"
+    }
+  ],
+
+  "example_outputs": [
+    {
+      "_scenario": "Pricebook email with Excel attachment",
+      "summary": "Revised Q3 2026 pricebook with 3 new SKUs and a 12% price increase on tier-2 products, requiring sales team review before an upcoming meeting.",
+      "keywords": ["pricebook", "sku", "pricing", "q3 2026", "sales", "margin", "tier-2", "price increase"],
+      "objective": "Increase Revenue",
+      "key_result": "Achieve $5M ARR by Q4",
+      "project": "Pricebook Refresh 2026",
+      "content_type": "Email",
+      "confidence": 0.92,
+      "reasoning": "Strong pricing and SKU signals map directly to Revenue objective. Pricebook updates are a core lever for ARR growth."
+    },
+    {
+      "_scenario": "Teams meeting transcript",
+      "summary": "Pipeline review identified win rate decline to 28% driven by slow quote turnaround (8 days vs 3-day competitor benchmark). Team committed to CPQ integration to recover to 35% win rate by Q3.",
+      "keywords": ["win rate", "pipeline", "quote", "cpq", "approval workflow", "turnaround", "sales velocity"],
+      "objective": "Increase Revenue",
+      "key_result": "Improve win rate to 35%",
+      "project": null,
+      "content_type": "Meeting Transcript",
+      "confidence": 0.95,
+      "reasoning": "Explicit win rate target (35%) and quote cycle discussion match the Revenue/Win Rate key result precisely."
+    },
+    {
+      "_scenario": "IT incident report",
+      "summary": "A 4.5-hour P1 CRM outage affected 120 sales users due to a database failover misconfiguration, exceeding the 2-hour MTTR SLA target.",
+      "keywords": ["incident", "outage", "crm", "sla", "mttr", "uptime", "database", "p1"],
+      "objective": "Improve Operational Efficiency",
+      "key_result": "Achieve 99.5% system uptime",
+      "project": null,
+      "content_type": "Report",
+      "confidence": 0.88,
+      "reasoning": "MTTR breach and system availability directly relate to the uptime key result under Operational Efficiency."
+    }
+  ],
+
+  "power_automate_http_action": {
+    "_comment": "Paste this into a Power Automate HTTP action. Replace {{content_variable}} with your compose output.",
+    "method": "POST",
+    "uri": "https://api.anthropic.com/v1/messages",
+    "headers": {
+      "x-api-key": "@parameters('AnthropicApiKey')",
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json"
+    },
+    "body": "@json({\n  'model': 'claude-opus-4-8',\n  'max_tokens': 1024,\n  'temperature': 0,\n  'messages': [\n    {\n      'role': 'user',\n      'content': concat('You are an enterprise knowledge classification engine...\\n\\nINPUT:\\n', variables('varContentPayload'), '\\n\\nOUTPUT (strict JSON only):...')\n    }\n  ]\n})"
+  }
+}
