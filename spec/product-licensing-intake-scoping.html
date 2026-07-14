@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product Licensing Ticketing System — Scoping</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1A1A1F; --ink2:#222229; --ink3:#2A2A33; --line:#34343E;
+  --paper:#F4F5F7; --grey:#B2B8C4; --dim:#7E8494;
+  --cyan:#00FFFF; --magenta:#FF00C7; --purple:#9933FF;
+  --green:#3DDC97; --amber:#FFB454; --red:#FF6B6B;
+}
+body{background:var(--ink);color:var(--paper);font-family:'Archivo',-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.55}
+.mono{font-family:'IBM Plex Mono',Consolas,monospace}
+.tabs{position:absolute;left:-9999px;opacity:0}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 60px}
+
+/* masthead */
+.mast{border-bottom:1px solid var(--line);padding:34px 0 0}
+.mast .inner{max-width:1120px;margin:0 auto;padding:0 20px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px}
+.mast h1{font-size:27px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.mast .sub{color:var(--grey);font-size:13.5px;margin-top:8px;max-width:760px}
+.metabar{display:flex;gap:22px;flex-wrap:wrap;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+.metabar b{color:var(--grey);font-weight:500}
+
+/* tab bar */
+.tabbar{display:flex;gap:4px;margin-top:24px;flex-wrap:wrap}
+.tlbl{padding:10px 16px 11px;font-size:12.5px;font-weight:600;color:var(--dim);cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;position:relative;top:1px}
+.tlbl .tnum{font-family:'IBM Plex Mono',monospace;font-size:10px;margin-right:7px;color:var(--dim)}
+#t1:checked ~ .mast .l1,#t2:checked ~ .mast .l2,#t3:checked ~ .mast .l3,#t4:checked ~ .mast .l4,#t5:checked ~ .mast .l5{background:var(--ink2);color:var(--paper);border-color:var(--line)}
+#t1:checked ~ .mast .l1 .tnum{color:var(--cyan)}
+#t2:checked ~ .mast .l2 .tnum{color:var(--cyan)}
+#t3:checked ~ .mast .l3 .tnum{color:var(--magenta)}
+#t4:checked ~ .mast .l4 .tnum{color:var(--purple)}
+#t5:checked ~ .mast .l5 .tnum{color:var(--green)}
+.panel{display:none;padding-top:30px}
+#t1:checked ~ .wrap .p1,#t2:checked ~ .wrap .p2,#t3:checked ~ .wrap .p3,#t4:checked ~ .wrap .p4,#t5:checked ~ .wrap .p5{display:block}
+
+/* shared */
+.sec{margin-bottom:34px}
+.sh{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.sh .bar{width:26px;height:3px;border-radius:2px;flex-shrink:0;position:relative;top:-3px}
+.sh h2{font-size:16px;font-weight:700;letter-spacing:-.005em}
+.sh span.note{font-size:12px;color:var(--dim)}
+.lede{color:var(--grey);font-size:13.5px;max-width:820px;margin-bottom:18px}
+.card{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+details.x{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px}
+details.x summary{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan);cursor:pointer;list-style:none}
+details.x summary::-webkit-details-marker{display:none}
+details.x summary::before{content:"+ ";font-weight:600}
+details.x[open] summary::before{content:"– "}
+details.x .xb{margin-top:8px;color:var(--grey);font-size:12.5px}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:20px;padding:3px 10px}
+.pill.miss{background:rgba(255,107,107,.12);color:var(--red)}
+.pill.part{background:rgba(255,180,84,.12);color:var(--amber)}
+.pill.plan{background:rgba(0,255,255,.1);color:var(--cyan)}
+.pill.have{background:rgba(61,220,151,.12);color:var(--green)}
+ul.tight{list-style:none}
+ul.tight li{padding-left:16px;position:relative;margin-bottom:7px;color:var(--grey);font-size:13px}
+ul.tight li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:2px;background:var(--line)}
+
+/* TAB 1 stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+@media(max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px}
+.stat .v{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;letter-spacing:-.02em}
+.stat .k{font-size:11.5px;color:var(--dim);margin-top:4px;line-height:1.35}
+.stat .tb{width:22px;height:3px;border-radius:2px;margin-bottom:12px}
+
+/* failure chain */
+.chain{display:flex;flex-direction:column;gap:0;max-width:860px}
+.clink{display:grid;grid-template-columns:34px 1fr;gap:14px;position:relative;padding-bottom:20px}
+.clink:not(:last-child)::before{content:"";position:absolute;left:16px;top:34px;bottom:0;width:1px;background:var(--line)}
+.cdot{width:33px;height:33px;border-radius:9px;background:var(--ink3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--red);font-weight:600}
+.clink .cb b{font-size:13.5px;display:block;margin-bottom:2px}
+.clink .cb p{color:var(--grey);font-size:12.5px;max-width:720px}
+
+/* TAB 2 flow */
+.stage{display:grid;grid-template-columns:56px 1fr;gap:16px;position:relative;padding-bottom:26px}
+.stage:not(.last)::before{content:"";position:absolute;left:27px;top:58px;bottom:0;width:2px;background:linear-gradient(var(--line),var(--line))}
+.snum{width:55px;height:55px;border-radius:14px;background:var(--ink2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.snum .n{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600}
+.snum .accent{width:18px;height:3px;border-radius:2px;margin-top:4px}
+.sbody{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
+.sbody h3{font-size:14.5px;font-weight:700;margin-bottom:3px}
+.sbody .who{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.sbody p{color:var(--grey);font-size:13px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:760px){.split{grid-template-columns:1fr}}
+.route{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--ink)}
+.route .rt{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px}
+.route p{font-size:12.5px}
+.fns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fn{font-size:11.5px;background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 9px;color:var(--grey)}
+.guard{border:1px solid rgba(255,0,199,.35);background:rgba(255,0,199,.05);border-radius:12px;padding:16px 18px;margin-top:6px}
+.guard h3{font-size:14px;color:var(--magenta);margin-bottom:10px;font-weight:700}
+.guard .grid4 .g b{display:block;font-size:12.5px;margin-bottom:3px}
+.guard .grid4 .g p{font-size:11.5px;color:var(--grey)}
+.rtypes{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+@media(max-width:860px){.rtypes{grid-template-columns:repeat(2,1fr)}}
+.rtype{background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 11px}
+.rtype b{font-size:12px;display:block;margin-bottom:2px}
+.rtype span{font-size:11px;color:var(--dim)}
+
+/* TAB 3 platform */
+table.cmp{width:100%;border-collapse:collapse;font-size:12.5px}
+table.cmp th,table.cmp td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.cmp th{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:500}
+table.cmp td.dim-c{color:var(--paper);font-weight:600;font-size:12.5px;width:24%}
+table.cmp td{color:var(--grey)}
+table.cmp .win{color:var(--paper)}
+table.cmp .win::before{content:"● ";color:var(--green);font-size:9px;vertical-align:1px}
+.rec{border:1px solid rgba(0,255,255,.35);background:rgba(0,255,255,.04);border-radius:12px;padding:18px 20px;margin-top:20px}
+.rec .rl{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
+.rec h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.rec p{color:var(--grey);font-size:13px;max-width:840px}
+.seq{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+@media(max-width:760px){.seq{grid-template-columns:1fr}}
+.seqc{background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+.seqc .sn{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--cyan);margin-bottom:5px}
+.seqc b{font-size:13px;display:block;margin-bottom:4px}
+.seqc p{font-size:12px;color:var(--grey)}
+
+/* TAB 4 benchmark */
+.bench{display:flex;flex-direction:column;gap:10px}
+.brow{display:grid;grid-template-columns:1fr 110px 1.35fr;gap:14px;align-items:start;background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+@media(max-width:760px){.brow{grid-template-columns:1fr}}
+.brow .bt b{font-size:13px;display:block}
+.brow .bt span{font-size:11.5px;color:var(--dim)}
+.brow .bd{font-size:12.5px;color:var(--grey)}
+
+/* TAB 5 scope */
+.scopegrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.scopegrid{grid-template-columns:1fr}}
+.qlist{counter-reset:q}
+.q{display:grid;grid-template-columns:30px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.q::before{counter-increment:q;content:counter(q,decimal-leading-zero);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--green);padding-top:1px}
+.q b{font-size:13px;display:block;margin-bottom:2px}
+.q p{font-size:12px;color:var(--grey)}
+.copybtn{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--ink3);border:1px solid var(--line);color:var(--grey);border-radius:7px;padding:6px 13px;cursor:pointer;margin-top:14px}
+.copybtn:hover{color:var(--paper);border-color:var(--dim)}
+.own{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:860px){.own{grid-template-columns:repeat(2,1fr)}}
+.oc{background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:12px 13px}
+.oc .ob{width:18px;height:3px;border-radius:2px;margin-bottom:9px}
+.oc b{font-size:12.5px;display:block;margin-bottom:3px}
+.oc p{font-size:11.5px;color:var(--grey)}
+.footer{border-top:1px solid var(--line);margin-top:44px;padding-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--dim);display:flex;gap:20px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<input type="radio" name="tab" class="tabs" id="t1" checked>
+<input type="radio" name="tab" class="tabs" id="t2">
+<input type="radio" name="tab" class="tabs" id="t3">
+<input type="radio" name="tab" class="tabs" id="t4">
+<input type="radio" name="tab" class="tabs" id="t5">
+
+<header class="mast"><div class="inner">
+  <div class="eyebrow">Octave · Pricing and Commercial Strategy</div>
+  <h1>Product Licensing Ticketing System</h1>
+  <div class="sub">One governed front door for every part-number and pricing request: create, change, or retire. Scoping draft covering the current state, the target workflow, the platform decision, and the handoff to Pricing Operations.</div>
+  <div class="metabar">
+    <span><b>Status</b> · Draft for scoping, v0.1</span>
+    <span><b>Date</b> · 14 July 2026</span>
+    <span><b>Owner</b> · Pricing and Commercial Strategy</span>
+    <span><b>Handoff to</b> · Pricing Operations</span>
+  </div>
+  <div class="tabbar">
+    <label class="tlbl l1" for="t1"><span class="tnum">01</span>Today</label>
+    <label class="tlbl l2" for="t2"><span class="tnum">02</span>Target workflow</label>
+    <label class="tlbl l3" for="t3"><span class="tnum">03</span>Platform decision</label>
+    <label class="tlbl l4" for="t4"><span class="tnum">04</span>Benchmark</label>
+    <label class="tlbl l5" for="t5"><span class="tnum">05</span>Scope and next call</label>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<!-- ============ TAB 1: TODAY ============ -->
+<div class="panel p1">
+  <div class="stats">
+    <div class="stat"><div class="tb" style="background:var(--cyan)"></div><div class="v">~27.5k</div><div class="k">product records in the catalog (PRODUCT2), grown by attribute-per-part-number sprawl</div></div>
+    <div class="stat"><div class="tb" style="background:var(--magenta)"></div><div class="v">1</div><div class="k">generic inbox where every create, change, and retire request lands today</div></div>
+    <div class="stat"><div class="tb" style="background:var(--purple)"></div><div class="v">2</div><div class="k">unstructured intake forms in circulation: a Word price-per-page export and a multi-part Excel sheet</div></div>
+    <div class="stat"><div class="tb" style="background:var(--red)"></div><div class="v">0</div><div class="k">audit trail: no status, no log, no SOX-grade record of who requested or approved what</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sh"><div class="bar" style="background:var(--red)"></div><h2>The failure chain</h2><span class="note">how a request dies today</span></div>
+    <div class="chain">
+      <div class="clink"><div class="cdot">01</div><div class="cb"><b>A request is born late</b><p>A product manager, pillar lead, or salesperson needs a new part number, a price change, or a structural change. It typically surfaces at the very end of the product cycle, when quoting, booking, and billing are already waiting on it.</p></div></div>
+      <div class="clink"><div class="cdot">02</div><div class="cb"><b>It goes to a generic inbox</b><p>The request is an email, sometimes with the Word or Excel form attached, sometimes free text. There is no required structure, no request type, and no way to tell a clone request from a new license model.</p></div></div>
+      <div class="clink"><div class="cdot">03</div><div class="cb"><b>Nobody can triage it</b><p>Pricing Operations tracks arrivals manually. There is no queue, no classification, no SLA, and no visibility for the requester. Requests are missed or resurface as escalations.</p></div></div>
+      <div class="clink"><div class="cdot">04</div><div class="cb"><b>The formal process is skipped</b><p>A New Product Release process (v4.0, Promapp and Nintex) exists on paper, with defined roles and systems of record. It has not been consistently followed, and the tooling in use today (Wrike) covers only the final field-notification step, not upstream intake or triggering.</p></div></div>
+      <div class="clink"><div class="cdot">05</div><div class="cb"><b>The damage compounds downstream</b><p>Parts get created without a dedupe check, so the catalog keeps sprawling. Quotes happen without valid part numbers, heaviest where CPQ adoption is weak. Order management inherits rework, and there is nothing defensible to show an auditor.</p></div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sh"><div class="bar" style="background:var(--cyan)"></div><h2>Why this matters now</h2></div>
+    <div class="grid3">
+      <div class="card"><b style="font-size:13px">SOX readiness</b><p style="color:var(--grey);font-size:12.5px;margin-top:5px">As a newly public company, price and catalog changes need a documented request, approval, and execution trail. Email cannot provide one.</p></div>
+      <div class="card"><b style="font-size:13px">The price is authored once</b><p style="color:var(--grey);font-size:12.5px;margin-top:5px">Every price is authored once in Conga on the price list item; everything downstream reads a copy. The integrity of the request that triggers that authoring step is the whole game.</p></div>
+      <div class="card"><b style="font-size:13px">SKU rationalization</b><p style="color:var(--grey);font-size:12.5px;margin-top:5px">The deprecation cut list only holds if the front door stops uncontrolled creation. Intake governance is the prevention half of rationalization.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB 2: TARGET WORKFLOW ============ -->
+<div class="panel p2">
+  <div class="lede">Six stages from request to load, with one branch: simple requests move fast, structural requests get reviewed early by the right functions. The design principle is a single front door, complexity-based routing, and a log of every step.</div>
+
+  <div class="stage">
+    <div class="snum"><span class="n">1</span><span class="accent" style="background:var(--cyan)"></span></div>
+    <div class="sbody">
+      <h3>One front door</h3>
+      <div class="who">Requester · PM, pillar lead, sales</div>
+      <p>All requests enter through a single structured form. The generic inbox is retired (it auto-replies with the link), and the two current forms become required fields inside the request. Every request declares one of five types:</p>
+      <div class="rtypes">
+        <div class="rtype"><b>Create part number</b><span>new product or new flavor</span></div>
+        <div class="rtype"><b>Change price</b><span>list, maintenance, or transfer</span></div>
+        <div class="rtype"><b>Change attributes</b><span>license model, platform, charge type</span></div>
+        <div class="rtype"><b>Retire / EOL</b><span>remove from the sellable catalog</span></div>
+        <div class="rtype"><b>Structure change</b><span>bundle, tier, or offering model</span></div>
+      </div>
+      <details class="x"><summary>Required fields per request</summary><div class="xb">Requester and function, pillar and solution, business justification, target effective date, affected part numbers (or "new"), proposed price and currency, license model and charge type, and whether an existing part could serve instead. Multi-part requests carry line items rather than an attached spreadsheet.</div></details>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="snum"><span class="n">2</span><span class="accent" style="background:var(--cyan)"></span></div>
+    <div class="sbody">
+      <h3>Triage and routing</h3>
+      <div class="who">Pricing Operations · within 2 business days</div>
+      <p>Operations classifies every request on arrival. The routing rule is the one already agreed in principle:</p>
+      <div class="split">
+        <div class="route"><div class="rt" style="color:var(--green)">Fast track</div><p>A copy of an existing product with no new variables: clone, price update within policy, or straightforward retirement. Goes directly to the Operations execution queue.</p></div>
+        <div class="route"><div class="rt" style="color:var(--amber)">Full review</div><p>Anything introducing a new pricing model, tier model, offering structure, or license model. Routes to Pricing Strategy review and triggers the cross-functional relevance check in stage 3.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="snum"><span class="n">3</span><span class="accent" style="background:var(--amber)"></span></div>
+    <div class="sbody">
+      <h3>Cross-functional relevance check</h3>
+      <div class="who">Full-review requests only</div>
+      <p>The request form carries each function's relevance questions, so the right teams are pulled in at intake rather than discovering the product at booking. Only functions whose answers flag relevance are engaged.</p>
+      <div class="fns"><span class="fn">Legal</span><span class="fn">Finance</span><span class="fn">Sales Operations</span><span class="fn">Order Management</span><span class="fn">Software Delivery</span><span class="fn">Revenue Recognition</span><span class="fn">Cloud Operations</span><span class="fn">IT and Provisioning</span><span class="fn">Support</span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="snum"><span class="n">4</span><span class="accent" style="background:var(--magenta)"></span></div>
+    <div class="sbody">
+      <h3>Two-step approval</h3>
+      <div class="who">Pricing Strategy → Pricing Operations</div>
+      <p>Step one: Pricing Strategy signs off on the commercial design (price, model, structure). Step two: Pricing Operations accepts the request as executable (complete, unambiguous, loadable). Approval thresholds align to delegated pricing authority once the committee grants it, so routine requests do not escalate and exceptional ones must.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="snum"><span class="n">5</span><span class="accent" style="background:var(--purple)"></span></div>
+    <div class="sbody">
+      <h3>Execute and load</h3>
+      <div class="who">Pricing Operations</div>
+      <p>The part number is created under taxonomy rules: a dedupe check against the existing catalog first, and a preference for attribute or matrix pricing over a new SKU wherever the system allows it. The price is authored once in Conga on the price list item; downstream systems read from there.</p>
+    </div>
+  </div>
+
+  <div class="stage last">
+    <div class="snum"><span class="n">6</span><span class="accent" style="background:var(--green)"></span></div>
+    <div class="sbody">
+      <h3>Close, notify, log</h3>
+      <div class="who">System of record</div>
+      <p>The requester receives confirmation with the final part number and effective date, the field is notified, and the request closes with a full timestamped history: who asked, who approved, what changed, when it loaded. That history is the audit trail and feeds the pricing decision log.</p>
+    </div>
+  </div>
+
+  <div class="guard">
+    <h3>Standing guardrails</h3>
+    <div class="grid4">
+      <div class="g"><b>No part number, no quote</b><p>A quote attempt with a missing part routes to deal desk for exception approval, not around the system.</p></div>
+      <div class="g"><b>Dedupe before create</b><p>No new SKU without checking whether an existing part or an attribute deviation already covers it.</p></div>
+      <div class="g"><b>One authoring point</b><p>Prices change in Conga on the PLI, through this process, and nowhere else.</p></div>
+      <div class="g"><b>Everything logged</b><p>No request, approval, or load exists outside the system. Email is not a channel.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB 3: PLATFORM ============ -->
+<div class="panel p3">
+  <div class="lede">The question is not which tool is better in the abstract. It is which tool should carry the production process, and which should be used to design it. The two candidates are good at different halves of the problem.</div>
+
+  <div class="card" style="padding:6px 18px 12px">
+    <table class="cmp">
+      <tr><th style="width:24%">Dimension</th><th>Salesforce request type</th><th>Claude Code application</th></tr>
+      <tr><td class="dim-c">Where requesters already work</td><td class="win">Sales and product live in Salesforce; a request type sits beside the existing general-support tickets</td><td>A separate destination that requesters must be pointed to and remember</td></tr>
+      <tr><td class="dim-c">Audit trail and SOX</td><td class="win">Native field history, approval records, and timestamps, defensible to an auditor</td><td>Possible to build, but bespoke, and would need its own controls testimony</td></tr>
+      <tr><td class="dim-c">Approval engine</td><td class="win">Native multi-step approvals with conditional routing by record values</td><td>Custom logic; flexible but everything is hand-built and hand-maintained</td></tr>
+      <tr><td class="dim-c">Queues, dashboards, SLAs</td><td class="win">Standard queues, reports, and aging views for the Operations team</td><td>Buildable, but reporting and notification plumbing is all custom</td></tr>
+      <tr><td class="dim-c">Data adjacency</td><td class="win">Accounts, products, price book entries, and quotes are already in the same system</td><td>No native access to catalog or account data; would need exports or integration</td></tr>
+      <tr><td class="dim-c">Speed to first working version</td><td>Depends on Business IT capacity and the build queue</td><td class="win">Days. A working clay model can exist before the Salesforce scoping finishes</td></tr>
+      <tr><td class="dim-c">Design freedom</td><td>Constrained to platform objects and flows</td><td class="win">Total: the routing logic, relevance questions, and thresholds can be shaped and reshaped freely</td></tr>
+      <tr><td class="dim-c">Ownership after handoff</td><td class="win">Pricing Operations and Business IT run it as a standard admin object</td><td>Would depend on this team maintaining custom software indefinitely</td></tr>
+      <tr><td class="dim-c">Fit with the future stack</td><td class="win">Survives as a pattern even as CPQ and CRM are replaced in the greenfield program</td><td>By design disposable; that is a strength for prototyping, a weakness for production</td></tr>
+    </table>
+  </div>
+
+  <div class="rec">
+    <div class="rl">Recommendation</div>
+    <h3>Design in Claude Code. Run in Salesforce.</h3>
+    <p>These are not competing answers; they are two phases of the same build. The Claude Code clay model is already a committed KR: use it to encode the routing rules, the five request types, the relevance questions, and the approval thresholds, and let Pricing Operations and the pillar leads react to something real. The validated model then becomes the requirements specification for the Salesforce build, which is where the process should live in production: native approvals, native audit history, native queues, and requesters who are already in the system. This sequencing also de-risks the Business IT engagement, because they receive tested requirements instead of a discovery project.</p>
+    <div class="seq">
+      <div class="seqc"><div class="sn">PHASE 1 · NOW</div><b>Clay model in Claude Code</b><p>Working prototype of intake, triage, routing, and approvals. Pricing Operations and selected requesters test it against real historical requests.</p></div>
+      <div class="seqc"><div class="sn">PHASE 2 · AFTER VALIDATION</div><b>Salesforce build</b><p>Business IT implements the validated design as a request type with a two-step approval flow, an Operations queue, and dashboards. ALI instance first.</p></div>
+      <div class="seqc"><div class="sn">PHASE 3 · HANDOFF</div><b>Pricing Operations owns it</b><p>Queue ownership, triage, and execution transfer to Operations. The generic inbox is retired. Strategy retains the governance rules and taxonomy.</p></div>
+    </div>
+  </div>
+
+  <div class="sec" style="margin-top:24px">
+    <div class="sh"><div class="bar" style="background:var(--amber)"></div><h2>Caveats to confirm</h2></div>
+    <ul class="tight">
+      <li>Instance fragmentation: three Salesforce instances exist (ALI, SIG, Projectmates). Version one targets ALI only; confirm nothing in the design blocks a later extension.</li>
+      <li>Requester licensing: confirm the likely requesters (product managers, pillar leads, sales) hold licenses that allow them to submit and track requests.</li>
+      <li>No Conga integration in version one: the load into Conga remains a manual Operations step with a confirmation field, which keeps the build small and the audit trail intact.</li>
+      <li>The greenfield CRM and ERP program will eventually replace the platform underneath this. The process design, not the implementation, is the durable asset, which is exactly why the clay model matters.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ TAB 4: BENCHMARK ============ -->
+<div class="panel p4">
+  <div class="lede">The standard pattern for new product introduction and catalog-change governance is consistent across mature software companies: one intake, typed requests, complexity-based routing, early cross-functional gates, thresholded approvals, governed execution, and measurement. Here is that pattern against where Octave stands today.</div>
+
+  <div class="bench">
+    <div class="brow"><div class="bt"><b>Single front door</b><span>one intake channel, email retired</span></div><span class="pill miss">Missing</span><div class="bd">All requests arrive by email to a generic inbox. This is the first thing the system replaces.</div></div>
+    <div class="brow"><div class="bt"><b>Typed request catalog</b><span>defined request types with required fields</span></div><span class="pill part">Partial</span><div class="bd">Two forms exist (Word price-per-page, multi-part Excel) but are optional, unstructured, and unenforced. The five request types formalize this.</div></div>
+    <div class="brow"><div class="bt"><b>Complexity-based routing</b><span>fast track vs full review</span></div><span class="pill part">Partial</span><div class="bd">The rule is agreed in principle (clone requests go straight to Operations; new models trigger review) but nothing enforces it today.</div></div>
+    <div class="brow"><div class="bt"><b>Early cross-functional gates</b><span>relevance questions at intake</span></div><span class="pill miss">Missing</span><div class="bd">The nine functions currently discover new products at booking or billing. Best practice pulls them in at intake through structured relevance questions.</div></div>
+    <div class="brow"><div class="bt"><b>Thresholded approvals</b><span>two-step, tied to delegated authority</span></div><span class="pill plan">Planned</span><div class="bd">Depends on the delegated pricing authority ask pending with the Pricing Committee. The workflow is designed to plug those thresholds in.</div></div>
+    <div class="brow"><div class="bt"><b>SLA and requester visibility</b><span>status the requester can see</span></div><span class="pill miss">Missing</span><div class="bd">Requesters today have no way to know whether their request was received, is in review, or was executed. Silence produces escalations and workarounds.</div></div>
+    <div class="brow"><div class="bt"><b>SOX-grade audit trail</b><span>who asked, who approved, when loaded</span></div><span class="pill miss">Missing</span><div class="bd">No systematic record exists. As a public company this is the highest-consequence gap on the list.</div></div>
+    <div class="brow"><div class="bt"><b>Taxonomy and dedupe gate</b><span>governed part-number creation</span></div><span class="pill miss">Missing</span><div class="bd">Every attribute deviation has historically become a new part number, which is the root cause of catalog sprawl. Creation without a dedupe check should not be possible.</div></div>
+    <div class="brow"><div class="bt"><b>Enforcement at the point of sale</b><span>no part number, no quote</span></div><span class="pill plan">Planned</span><div class="bd">The proposed hard rule: a missing part number routes to deal desk for exception approval rather than being invented in the quote. Targets creative selling outside the system.</div></div>
+    <div class="brow"><div class="bt"><b>Operating metrics</b><span>volume, cycle time, aging, rejection rate</span></div><span class="pill miss">Missing</span><div class="bd">Nobody can currently say how many requests arrive per month or how long they take. The queue produces these numbers as a byproduct.</div></div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <b style="font-size:13px">Reading the scoreboard</b>
+    <p style="color:var(--grey);font-size:12.5px;margin-top:5px">Six of ten practices are absent, two are partial, and two are planned and gated on decisions already in flight (delegated authority, the deal-desk rule). None of the gaps requires new invention: every one is closed by the workflow on tab 02 running on the platform decision on tab 03. That is the strongest argument that this is a build-and-adopt problem, not a design problem.</p>
+  </div>
+</div>
+
+<!-- ============ TAB 5: SCOPE AND CALL ============ -->
+<div class="panel p5">
+
+  <div class="sec">
+    <div class="sh"><div class="bar" style="background:var(--green)"></div><h2>Version one scope</h2></div>
+    <div class="scopegrid">
+      <div class="card">
+        <span class="pill have" style="margin-bottom:10px">In scope</span>
+        <ul class="tight" style="margin-top:10px">
+          <li>ALI Salesforce instance only</li>
+          <li>Five request types with required fields and line items for multi-part requests</li>
+          <li>Fast-track versus full-review routing at triage</li>
+          <li>Two-step approval (Pricing Strategy, then Pricing Operations)</li>
+          <li>Operations queue, dashboard, and aging report</li>
+          <li>Field history tracking on the request record</li>
+          <li>Requester confirmation on close, with the final part number and effective date</li>
+          <li>Generic inbox retired with an auto-reply pointing to the new intake</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="pill miss" style="margin-bottom:10px">Out of scope, v1</span>
+        <ul class="tight" style="margin-top:10px">
+          <li>Conga integration: the PLI load stays a manual Operations step with a confirmation field</li>
+          <li>SIG and Projectmates instances</li>
+          <li>Automated part-number generation from attributes</li>
+          <li>The stage 2 to 3 opportunity trigger (version two, once intake is stable)</li>
+          <li>Replacing the Wrike field-notification step</li>
+          <li>The nine-function relevance questionnaire in full: version one captures the answers as form fields, automation of the routing comes later</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sh"><div class="bar" style="background:var(--purple)"></div><h2>Who owns what</h2></div>
+    <div class="own">
+      <div class="oc"><div class="ob" style="background:var(--cyan)"></div><b>Requester</b><p>Submits a complete, typed request. PM, pillar lead, or sales.</p></div>
+      <div class="oc"><div class="ob" style="background:var(--green)"></div><b>Pricing Operations</b><p>Owns the queue: triage, execution, load, and close. The handoff destination.</p></div>
+      <div class="oc"><div class="ob" style="background:var(--magenta)"></div><b>Pricing Strategy</b><p>Full-review sign-off, taxonomy rules, thresholds, and governance of the process itself.</p></div>
+      <div class="oc"><div class="ob" style="background:var(--amber)"></div><b>Deal desk</b><p>Exception path for quotes with no valid part number.</p></div>
+      <div class="oc"><div class="ob" style="background:var(--purple)"></div><b>Business IT</b><p>Salesforce build, admin, and platform support after go-live.</p></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sh"><div class="bar" style="background:var(--green)"></div><h2>Questions for the Salesforce scoping call</h2><span class="note">in priority order</span></div>
+    <div class="card">
+      <div class="qlist" id="qlist">
+        <div class="q"><div><b>Object and coexistence</b><p>Can a dedicated request type be added beside the existing general-support tickets, and on which object would it live? Does anything about the current setup constrain us?</p></div></div>
+        <div class="q"><div><b>Approvals</b><p>Does the approval engine support a two-step flow with conditional routing based on request type and field values, and can approvers be queues or roles rather than named individuals?</p></div></div>
+        <div class="q"><div><b>Intake form</b><p>Can intake be a guided form with required fields that change by request type, and can one request carry multiple part-number lines instead of an attached spreadsheet?</p></div></div>
+        <div class="q"><div><b>Queues and reporting</b><p>Can requests route to the Pricing Operations team distribution as a queue, with dashboards for volume, aging, and cycle time out of the box?</p></div></div>
+        <div class="q"><div><b>Audit trail</b><p>Is field history tracking available on this object, and would the resulting record satisfy a SOX walkthrough of a price or catalog change?</p></div></div>
+        <div class="q"><div><b>Requester access</b><p>Do product managers, pillar leads, and sales hold licenses that allow them to submit and track requests, or is there a licensing gap to plan for?</p></div></div>
+        <div class="q"><div><b>Build ownership and timeline</b><p>Who would build this, where does it sit in the current queue, and what is a realistic first-version timeline if we arrive with tested requirements?</p></div></div>
+        <div class="q"><div><b>Future extension</b><p>Is there anything in a v1 design on the ALI instance that would block extending to the SIG and Projectmates instances later, or adding an automated trigger from opportunity stage changes?</p></div></div>
+      </div>
+      <button class="copybtn" onclick="copyQs(this)">Copy questions as text</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sh"><div class="bar" style="background:var(--cyan)"></div><h2>Definition of done for the handoff</h2></div>
+    <ul class="tight">
+      <li>The queue is live in Salesforce and Pricing Operations is triaging from it daily.</li>
+      <li>The two legacy forms are retired and the generic inbox auto-replies with the intake link.</li>
+      <li>Every request since go-live has a complete timestamped history from submission to load.</li>
+      <li>The first monthly operating report exists: volume by type, cycle time, aging, rejection rate.</li>
+      <li>The decision log entries flow into the Pricing SharePoint once it is live.</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    <span>Internal draft · do not distribute or publish</span>
+    <span>Pricing and Commercial Strategy · Octave</span>
+    <span>Sources: NPR Process v4.0 (Promapp), Pricing Operations working sessions, CPQ architecture review</span>
+  </div>
+</div>
+
+</div>
+
+<script>
+function copyQs(btn){
+  var t=["Questions for the Salesforce scoping call",""];
+  document.querySelectorAll('#qlist .q').forEach(function(q,i){
+    t.push((i+1)+". "+q.querySelector('b').textContent);
+    t.push("   "+q.querySelector('p').textContent);
+  });
+  var s=t.join("\n");
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(s).then(function(){btn.textContent="Copied";setTimeout(function(){btn.textContent="Copy questions as text"},1600)});
+  }else{
+    var ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent="Copied";setTimeout(function(){btn.textContent="Copy questions as text"},1600);
+  }
+}
+</script>
+</body>
+</html>

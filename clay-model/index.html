@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clay Model — Product Licensing Intake</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1A1A1F; --ink2:#222229; --ink3:#2A2A33; --line:#34343E;
+  --paper:#F4F5F7; --grey:#B2B8C4; --dim:#7E8494;
+  --cyan:#00FFFF; --magenta:#FF00C7; --purple:#9933FF;
+  --green:#3DDC97; --amber:#FFB454; --red:#FF6B6B;
+}
+body{background:var(--ink);color:var(--paper);font-family:'Archivo',-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
+.mono{font-family:'IBM Plex Mono',Consolas,monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 60px}
+
+/* header */
+.mast{border-bottom:1px solid var(--line);padding:22px 0 18px;margin-bottom:20px}
+.mast .inner{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:6px}
+.mast h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
+.mast .claybadge{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);border:1px dashed rgba(255,180,84,.5);border-radius:6px;padding:3px 8px;margin-left:10px;vertical-align:3px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:var(--ink2);border:none;color:var(--dim);font-family:'Archivo',sans-serif;font-size:12.5px;font-weight:600;padding:8px 14px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink3);color:var(--paper);box-shadow:inset 0 -2px 0 var(--cyan)}
+.btn{background:var(--ink3);border:1px solid var(--line);color:var(--paper);font-family:'Archivo',sans-serif;font-size:12.5px;font-weight:600;border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn:hover{border-color:var(--dim)}
+.btn.primary{background:rgba(0,255,255,.1);border-color:rgba(0,255,255,.4);color:var(--cyan)}
+.btn.ghost{background:transparent;color:var(--dim);font-weight:500}
+.btn.danger{background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.35);color:var(--red)}
+.btn.good{background:rgba(61,220,151,.1);border-color:rgba(61,220,151,.4);color:var(--green)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* KPI row — stat tiles: label + value, ink-colored value */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:13px 15px 11px}
+.kpi .k{font-size:11.5px;color:var(--dim);margin-bottom:4px}
+.kpi .v{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:var(--paper)}
+
+/* guardrails strip */
+.grail{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.grail span{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--magenta);border:1px solid rgba(255,0,199,.3);background:rgba(255,0,199,.05);border-radius:20px;padding:4px 11px}
+
+/* layout */
+.main{display:grid;grid-template-columns:390px 1fr;gap:18px;align-items:start}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+.card{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+
+/* queue */
+.qtabs{display:flex;gap:6px;margin-bottom:12px}
+.qtabs button{background:transparent;border:1px solid var(--line);border-radius:20px;color:var(--dim);font-size:11.5px;font-weight:600;padding:5px 12px;cursor:pointer;font-family:'Archivo',sans-serif}
+.qtabs button.on{color:var(--paper);border-color:var(--dim);background:var(--ink3)}
+.rcard{background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:9px;cursor:pointer}
+.rcard:hover{border-color:var(--dim)}
+.rcard.sel{border-color:var(--cyan)}
+.rcard .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:3px}
+.rcard .rid{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+.rcard b{font-size:13px;display:block;margin-bottom:6px}
+.rcard .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rcard .age{font-size:11px;color:var(--dim);margin-left:auto}
+
+/* pills — color always paired with a text label, never color alone */
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;border-radius:20px;padding:2.5px 9px}
+.pill.s-triage{background:rgba(0,255,255,.1);color:var(--cyan)}
+.pill.s-relevance{background:rgba(255,180,84,.12);color:var(--amber)}
+.pill.s-strategy{background:rgba(255,0,199,.1);color:var(--magenta)}
+.pill.s-ops{background:rgba(153,51,255,.14);color:#C79BFF}
+.pill.s-execute{background:rgba(153,51,255,.14);color:#C79BFF}
+.pill.s-closed{background:rgba(61,220,151,.12);color:var(--green)}
+.pill.s-rejected{background:rgba(255,107,107,.12);color:var(--red)}
+.pill.t{background:var(--ink3);color:var(--grey)}
+.pill.r-fast{background:rgba(61,220,151,.12);color:var(--green)}
+.pill.r-full{background:rgba(255,180,84,.12);color:var(--amber)}
+
+/* detail */
+.det h2{font-size:17px;font-weight:800;margin-bottom:2px}
+.det .rid{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);margin-bottom:10px}
+.tracker{display:flex;gap:5px;flex-wrap:wrap;margin:14px 0 18px}
+.tstep{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:4px 9px;border:1px solid var(--line);color:var(--dim)}
+.tstep.done{color:var(--green);border-color:rgba(61,220,151,.4)}
+.tstep.done::before{content:"✓ "}
+.tstep.cur{color:var(--paper);background:var(--ink3);border-color:var(--dim)}
+.tstep.dead{color:var(--red);border-color:rgba(255,107,107,.4)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-bottom:14px}
+@media(max-width:760px){.fgrid{grid-template-columns:1fr}}
+.f .fl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:2px}
+.f .fv{font-size:13px;color:var(--paper)}
+table.lines{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px}
+table.lines th,table.lines td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
+table.lines th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:500}
+table.lines td{color:var(--grey)}
+table.lines td.pn{font-family:'IBM Plex Mono',monospace;color:var(--paper);font-size:12px}
+
+/* action panel */
+.act{border:1px solid rgba(0,255,255,.3);background:rgba(0,255,255,.04);border-radius:12px;padding:15px 17px;margin:16px 0}
+.act h3{font-size:13.5px;font-weight:700;margin-bottom:4px}
+.act .who{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px}
+.act p.hint{font-size:12.5px;color:var(--grey);margin-bottom:12px}
+.act .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.act.locked{border-color:var(--line);background:var(--ink2)}
+.act.locked .who{color:var(--amber)}
+.radio-route{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+@media(max-width:760px){.radio-route{grid-template-columns:1fr}}
+.radio-route label{display:block;border:1px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer;background:var(--ink)}
+.radio-route label:has(input:checked){border-color:var(--cyan)}
+.radio-route .rt{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:4px}
+.radio-route p{font-size:11.5px;color:var(--grey)}
+.radio-route input{position:absolute;opacity:0}
+.suggest{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--dim);margin-bottom:10px}
+.suggest b{color:var(--paper);font-weight:600}
+.checkrow{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--grey)}
+.checkrow input{margin-top:3px;accent-color:#00b8b8}
+.checkrow b{color:var(--paper);font-weight:600}
+.qrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.qrow .qn b{font-size:12.5px;display:block}
+.qrow .qn p{font-size:11.5px;color:var(--grey)}
+.yn{display:flex;gap:4px}
+.yn button{background:var(--ink3);border:1px solid var(--line);color:var(--dim);font-size:11px;font-weight:600;border-radius:6px;padding:4px 11px;cursor:pointer;font-family:'Archivo',sans-serif}
+.yn button.yes.on{color:var(--amber);border-color:rgba(255,180,84,.5);background:rgba(255,180,84,.1)}
+.yn button.no.on{color:var(--grey);border-color:var(--dim)}
+
+/* history */
+.hist{margin-top:18px}
+.hist h3{font-size:13px;font-weight:700;margin-bottom:10px}
+.hev{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.hev .at{font-family:'IBM Plex Mono',monospace;color:var(--dim);font-size:10.5px;padding-top:2px}
+.hev b{color:var(--paper);font-weight:600}
+.hev p{color:var(--grey)}
+@media(max-width:600px){.hev{grid-template-columns:1fr}}
+
+/* form */
+.formcard label.fl{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:14px 0 5px}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;color:var(--paper);font-family:'Archivo',sans-serif;font-size:13px;padding:8px 11px}
+textarea{min-height:64px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--cyan)}
+.typegrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media(max-width:900px){.typegrid{grid-template-columns:repeat(2,1fr)}}
+.typegrid label{border:1px solid var(--line);border-radius:9px;padding:9px 10px;cursor:pointer;background:var(--ink);display:block}
+.typegrid label:has(input:checked){border-color:var(--cyan)}
+.typegrid input{position:absolute;opacity:0}
+.typegrid b{font-size:11.5px;display:block;margin-bottom:1px}
+.typegrid span{font-size:10.5px;color:var(--dim)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+@media(max-width:760px){.g2{grid-template-columns:1fr}}
+.lineitem{display:grid;grid-template-columns:1.1fr 1.6fr .7fr .55fr 30px;gap:8px;margin-bottom:8px;align-items:center}
+@media(max-width:760px){.lineitem{grid-template-columns:1fr 1fr}}
+.lineitem .del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px}
+.err{color:var(--red);font-size:12px;margin-top:10px;display:none}
+.notice{border:1px solid rgba(61,220,151,.4);background:rgba(61,220,151,.06);border-radius:10px;padding:11px 14px;font-size:12.5px;color:var(--grey);margin-bottom:14px}
+.notice b{color:var(--green)}
+
+/* quote tester */
+.quote small{display:block;color:var(--dim);font-size:11px;margin:4px 0 8px}
+.quote .qres{font-size:12px;margin-top:9px;display:none;border-radius:8px;padding:9px 12px}
+.quote .qres.ok{display:block;border:1px solid rgba(61,220,151,.4);color:var(--green);background:rgba(61,220,151,.06)}
+.quote .qres.block{display:block;border:1px solid rgba(255,107,107,.4);color:var(--red);background:rgba(255,107,107,.06)}
+.empty{color:var(--dim);font-size:13px;padding:40px 20px;text-align:center}
+.footer{border-top:1px solid var(--line);margin-top:36px;padding-top:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);display:flex;gap:18px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header class="mast"><div class="inner">
+  <div>
+    <div class="eyebrow">Octave · Pricing and Commercial Strategy</div>
+    <h1>Product Licensing Intake<span class="claybadge">Clay model · fake data</span></h1>
+  </div>
+  <div class="controls">
+    <span style="font-size:11px;color:var(--dim)">Acting as</span>
+    <div class="seg" id="personaSeg"></div>
+    <button class="btn primary" id="newBtn">+ New request</button>
+    <button class="btn ghost" id="resetBtn" title="Restore the seeded demo data">Reset demo</button>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+  <div class="grail">
+    <span>No part number, no quote</span><span>Dedupe before create</span>
+    <span>One authoring point: Conga PLI</span><span>Everything logged</span>
+  </div>
+
+  <div class="main">
+    <div>
+      <div class="qtabs" id="qtabs"></div>
+      <div id="queue"></div>
+      <div class="card quote" style="margin-top:16px">
+        <b style="font-size:13px">Guardrail check: quote a part</b>
+        <small>Simulates "no part number, no quote". Try a part number that isn't in the loaded catalog.</small>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="quotePN" placeholder="e.g. OCT-4410-SB" style="flex:1">
+          <button class="btn" id="quoteBtn">Quote</button>
+        </div>
+        <div class="qres" id="quoteRes"></div>
+      </div>
+    </div>
+    <div id="panel"></div>
+  </div>
+
+  <div class="footer">
+    <span>Clay model · prototype only · all data invented</span>
+    <span>Spec: ../spec/product-licensing-intake-scoping.html</span>
+    <span>Corrections go to FEEDBACK.md</span>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ============ constants (mirror the spec — see CLAUDE.md constraints) ============ */
+const TYPES = {
+  create:     {label:'Create part number', hint:'new product or new flavor'},
+  price:      {label:'Change price',       hint:'list, maintenance, or transfer'},
+  attributes: {label:'Change attributes',  hint:'license model, platform, charge type'},
+  retire:     {label:'Retire / EOL',       hint:'remove from sellable catalog'},
+  structure:  {label:'Structure change',   hint:'bundle, tier, or offering model'},
+};
+const FUNCTIONS = [
+  {id:'legal',   name:'Legal',               q:'New contract terms, licensing language, or third-party IP involved?'},
+  {id:'finance', name:'Finance',             q:'Changes how revenue is priced, discounted, or booked?'},
+  {id:'salesops',name:'Sales Operations',    q:'Requires changes to quoting rules, CPQ configuration, or territories?'},
+  {id:'om',      name:'Order Management',    q:'Changes how orders are entered, fulfilled, or amended?'},
+  {id:'swdel',   name:'Software Delivery',   q:'Needs a new delivery mechanism, entitlement, or license-key behavior?'},
+  {id:'revrec',  name:'Revenue Recognition', q:'Affects performance obligations, SSP, or rev-rec treatment?'},
+  {id:'cloudops',name:'Cloud Operations',    q:'Requires hosting, provisioning, or capacity changes in the cloud platform?'},
+  {id:'it',      name:'IT and Provisioning', q:'Requires system setup, integrations, or provisioning automation?'},
+  {id:'support', name:'Support',             q:'Creates a new supportable product or changes support entitlements?'},
+];
+const STAGES = {
+  triage:    {label:'Awaiting triage',   pill:'s-triage'},
+  relevance: {label:'Relevance check',   pill:'s-relevance'},
+  strategy:  {label:'Strategy review',   pill:'s-strategy'},
+  ops:       {label:'Ops acceptance',    pill:'s-ops'},
+  execute:   {label:'Execute & load',    pill:'s-execute'},
+  closed:    {label:'Closed',            pill:'s-closed'},
+  rejected:  {label:'Rejected',          pill:'s-rejected'},
+};
+const PATH = {fast:['triage','ops','execute','closed'], full:['triage','relevance','strategy','ops','execute','closed']};
+const PERSONAS = ['Requester','Pricing Operations','Pricing Strategy'];
+const OWNS = {triage:'Pricing Operations', relevance:'Pricing Strategy', strategy:'Pricing Strategy', ops:'Pricing Operations', execute:'Pricing Operations'};
+const LS_KEY = 'plr-clay-v1';
+
+/* ============ state ============ */
+let S = null; // {requests:[], catalog:[], counter}
+let ui = {persona:'Pricing Operations', tab:'action', mode:'empty', sel:null};
+
+const now = () => Date.now();
+const daysAgo = (d,h=0) => now() - d*86400000 - h*3600000;
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = t => new Date(t).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+const age = t => { const d=Math.floor((now()-t)/86400000); return d===0?'today':d===1?'1d':d+'d'; };
+
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+function load(){ try{ S = JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ S=null; } if(!S||!S.requests) S = seed(); save(); }
+function log(r, actor, action, detail){ r.history.push({at:now(), actor, action, detail}); }
+function nextId(){ S.counter++; return 'PLR-'+String(S.counter).padStart(4,'0'); }
+function genPN(){ return 'OCT-'+(4000+Math.floor(Math.random()*5000))+'-'+String.fromCharCode(65+Math.random()*26|0)+String.fromCharCode(65+Math.random()*26|0); }
+function byId(id){ return S.requests.find(r=>r.id===id); }
+
+/* ============ seed data (all invented) ============ */
+function seed(){
+  const reqs = [];
+  const mk = (o)=>({relevance:null, approvals:{}, execution:{dedupe:false,conga:false}, history:[], ...o});
+
+  // 1 — closed fast-track retirement, full history end to end
+  reqs.push(mk({ id:'PLR-0001', type:'retire', title:'Retire legacy on-prem part OCT-1187-LG',
+    requester:'R. Whitfield', fn:'Pillar lead', pillar:'Infrastructure / FieldOps',
+    justification:'Superseded by the SaaS flavor two releases ago; zero bookings in 4 quarters. On the rationalization cut list.',
+    effective:'2026-07-01', license:'Perpetual', charge:'License', existing:'n/a', newModel:'no',
+    lines:[{pn:'OCT-1187-LG', desc:'FieldOps Server, legacy on-prem', price:'', cur:'USD'}],
+    stage:'closed', route:'fast',
+    history:[
+      {at:daysAgo(21), actor:'R. Whitfield (Requester)', action:'Submitted', detail:'Type: Retire / EOL · 1 line item'},
+      {at:daysAgo(20,3), actor:'Pricing Operations', action:'Triaged → Fast track', detail:'Straightforward retirement, no new variables'},
+      {at:daysAgo(19), actor:'Pricing Operations', action:'Accepted as executable', detail:'Complete and unambiguous'},
+      {at:daysAgo(18,2), actor:'Pricing Operations', action:'Executed & loaded', detail:'Part removed from sellable catalog; PLI end-dated in Conga'},
+      {at:daysAgo(18,1), actor:'System', action:'Closed & requester notified', detail:'Effective 2026-07-01 · field notification sent'},
+    ]}));
+
+  // 2 — full review structure change, at relevance check
+  reqs.push(mk({ id:'PLR-0002', type:'structure', title:'Consumption tier bundle for Cloud Platform',
+    requester:'A. Ferreira', fn:'Product manager', pillar:'Cloud Platform',
+    justification:'Competitors sell capacity in three prepaid tiers. Proposal bundles compute + storage into Starter / Growth / Scale tiers with overage.',
+    effective:'2026-10-01', license:'Consumption', charge:'SaaS', existing:'no', newModel:'yes',
+    lines:[{pn:'NEW', desc:'Cloud Platform — Starter tier (prepaid)', price:'12000', cur:'USD'},
+           {pn:'NEW', desc:'Cloud Platform — Growth tier (prepaid)', price:'48000', cur:'USD'},
+           {pn:'NEW', desc:'Cloud Platform — Scale tier (prepaid)', price:'150000', cur:'USD'}],
+    stage:'relevance', route:'full',
+    history:[
+      {at:daysAgo(6), actor:'A. Ferreira (Requester)', action:'Submitted', detail:'Type: Structure change · 3 line items'},
+      {at:daysAgo(5,4), actor:'Pricing Operations', action:'Triaged → Full review', detail:'New tier model and offering structure'},
+    ]}));
+
+  // 3 — full review attributes change, at strategy review (relevance done)
+  reqs.push(mk({ id:'PLR-0003', type:'attributes', title:'License model change: named user → concurrent, FieldOps Mobile',
+    requester:'K. Osei', fn:'Sales', pillar:'Infrastructure / FieldOps',
+    justification:'Two enterprise prospects blocked: shift workers share devices, named-user licensing double-counts them.',
+    effective:'2026-09-01', license:'Concurrent', charge:'SaaS', existing:'yes', newModel:'yes',
+    lines:[{pn:'OCT-5521-FM', desc:'FieldOps Mobile — concurrent-user flavor', price:'890', cur:'USD'}],
+    stage:'strategy', route:'full',
+    relevance:{engaged:['Legal','Sales Operations','Software Delivery'], answers:{legal:true,finance:false,salesops:true,om:false,swdel:true,revrec:false,cloudops:false,it:false,support:false}},
+    history:[
+      {at:daysAgo(10), actor:'K. Osei (Requester)', action:'Submitted', detail:'Type: Change attributes · 1 line item'},
+      {at:daysAgo(9,2), actor:'Pricing Operations', action:'Triaged → Full review', detail:'Introduces a new license model for this product'},
+      {at:daysAgo(7), actor:'Pricing Strategy', action:'Relevance check complete', detail:'Engaged: Legal, Sales Operations, Software Delivery'},
+    ]}));
+
+  // 4 — fast-track clone at ops acceptance
+  reqs.push(mk({ id:'PLR-0004', type:'create', title:'Clone: Octave Studio, 3-year term flavor',
+    requester:'M. Lindqvist', fn:'Product manager', pillar:'Design Tools',
+    justification:'Straight clone of the 1-year subscription part with a 3-year term and standard multi-year discount. No new variables.',
+    effective:'2026-08-15', license:'Subscription', charge:'License', existing:'yes', newModel:'no',
+    lines:[{pn:'NEW', desc:'Octave Studio — 3-year term subscription', price:'2490', cur:'USD'}],
+    stage:'ops', route:'fast',
+    history:[
+      {at:daysAgo(3), actor:'M. Lindqvist (Requester)', action:'Submitted', detail:'Type: Create part number · 1 line item'},
+      {at:daysAgo(2,5), actor:'Pricing Operations', action:'Triaged → Fast track', detail:'Clone of existing product, no new variables'},
+    ]}));
+
+  // 5 — price change awaiting triage
+  reqs.push(mk({ id:'PLR-0005', type:'price', title:'Maintenance uplift 4% — Analytics Suite renewals',
+    requester:'D. Brennan', fn:'Pillar lead', pillar:'Analytics',
+    justification:'Annual maintenance uplift within the approved 3–5% policy band, effective for renewals from October.',
+    effective:'2026-10-01', license:'Perpetual', charge:'Maintenance', existing:'n/a', newModel:'no',
+    lines:[{pn:'OCT-2201-AS', desc:'Analytics Suite maintenance, +4% list', price:'1144', cur:'USD'}],
+    stage:'triage', route:null,
+    history:[
+      {at:daysAgo(1,2), actor:'D. Brennan (Requester)', action:'Submitted', detail:'Type: Change price · 1 line item'},
+    ]}));
+
+  // 6 — rejected duplicate
+  reqs.push(mk({ id:'PLR-0006', type:'create', title:'New part: Analytics Suite viewer seat',
+    requester:'T. Nakamura', fn:'Sales', pillar:'Analytics',
+    justification:'Customer wants a cheap read-only seat.',
+    effective:'2026-08-01', license:'Subscription', charge:'SaaS', existing:'unsure', newModel:'no',
+    lines:[{pn:'NEW', desc:'Analytics Suite — viewer seat', price:'120', cur:'USD'}],
+    stage:'rejected', route:'fast',
+    history:[
+      {at:daysAgo(13), actor:'T. Nakamura (Requester)', action:'Submitted', detail:'Type: Create part number · 1 line item'},
+      {at:daysAgo(12,1), actor:'Pricing Operations', action:'Triaged → Fast track', detail:'Looked like a clone at intake'},
+      {at:daysAgo(12), actor:'Pricing Operations', action:'Rejected at acceptance', detail:'Dedupe check: OCT-2288-AV (viewer seat) already exists — guardrail: dedupe before create. Requester pointed to existing part.'},
+    ]}));
+
+  return { counter:6, requests:reqs,
+    catalog:['OCT-2201-AS','OCT-2288-AV','OCT-5521-FM','OCT-3345-ST','OCT-4410-SB','OCT-6120-CP','OCT-7010-FO'] };
+}
+
+/* ============ routing suggestion (spec rule) ============ */
+function suggestRoute(r){
+  return (r.newModel==='yes' || r.type==='structure') ? 'full' : 'fast';
+}
+function stagePath(r){ return r.route ? PATH[r.route] : ['triage']; }
+
+/* ============ render: header / KPIs / queue ============ */
+function renderPersona(){
+  document.getElementById('personaSeg').innerHTML = PERSONAS.map(p=>
+    `<button class="${ui.persona===p?'on':''}" onclick="setPersona('${p}')">${p}</button>`).join('');
+}
+function setPersona(p){ ui.persona=p; render(); }
+
+function renderKpis(){
+  const c = k => S.requests.filter(r=>r.stage===k).length;
+  const open = S.requests.filter(r=>!['closed','rejected'].includes(r.stage)).length;
+  const tiles = [
+    ['Open requests', open],
+    ['Awaiting triage', c('triage')],
+    ['In review', c('relevance')+c('strategy')],
+    ['With Operations', c('ops')+c('execute')],
+    ['Closed / rejected', c('closed')+c('rejected')],
+  ];
+  document.getElementById('kpis').innerHTML = tiles.map(([k,v])=>
+    `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+}
+
+function needsMe(r){
+  if(['closed','rejected'].includes(r.stage)) return false;
+  return OWNS[r.stage]===ui.persona;
+}
+function renderQueue(){
+  const tabs = [['action','Needs my action'],['open','All open'],['done','Closed']];
+  document.getElementById('qtabs').innerHTML = tabs.map(([k,l])=>
+    `<button class="${ui.tab===k?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  let list = S.requests.slice().sort((a,b)=>b.history[0].at-a.history[0].at);
+  if(ui.tab==='action') list = list.filter(needsMe);
+  if(ui.tab==='open')   list = list.filter(r=>!['closed','rejected'].includes(r.stage));
+  if(ui.tab==='done')   list = list.filter(r=>['closed','rejected'].includes(r.stage));
+  document.getElementById('queue').innerHTML = list.length ? list.map(r=>{
+    const st = STAGES[r.stage];
+    return `<div class="rcard ${ui.sel===r.id&&ui.mode==='detail'?'sel':''}" onclick="openReq('${r.id}')">
+      <div class="top"><span class="rid">${r.id}</span><span class="age">${age(r.history[0].at)}</span></div>
+      <b>${esc(r.title)}</b>
+      <div class="meta"><span class="pill t">${TYPES[r.type].label}</span>
+        ${r.route?`<span class="pill r-${r.route}">${r.route==='fast'?'Fast track':'Full review'}</span>`:''}
+        <span class="pill ${st.pill}">${st.label}</span></div>
+    </div>`;
+  }).join('') : `<div class="empty">Nothing here${ui.tab==='action'?' for '+ui.persona:''}.</div>`;
+}
+function setTab(t){ ui.tab=t; render(); }
+function openReq(id){ ui.sel=id; ui.mode='detail'; render(); }
+
+/* ============ render: detail panel ============ */
+function trackerHtml(r){
+  const path = r.route ? PATH[r.route] : PATH.full; // pre-triage: show full path greyed
+  const idx = path.indexOf(r.stage);
+  let steps = path.map((s,i)=>{
+    let cls = 'tstep';
+    if(r.stage==='closed') cls += ' done';
+    else if(r.stage==='rejected') cls += i<=path.indexOf('triage')?' done':'';
+    else if(i<idx) cls += ' done';
+    else if(i===idx) cls += ' cur';
+    return `<span class="${cls}">${STAGES[s].label}</span>`;
+  });
+  if(r.stage==='rejected') steps.push('<span class="tstep dead">Rejected</span>');
+  return `<div class="tracker">${steps.join('')}</div>`;
+}
+
+function detailHtml(r){
+  const st = STAGES[r.stage];
+  const lines = r.lines.map(l=>`<tr><td class="pn">${esc(l.pn)}</td><td>${esc(l.desc)}</td><td>${l.price?esc(l.price):'—'}</td><td>${esc(l.cur)}</td></tr>`).join('');
+  const fields = [
+    ['Requester', `${esc(r.requester)} · ${esc(r.fn)}`], ['Pillar / solution', esc(r.pillar)],
+    ['Target effective date', esc(r.effective)], ['License model · charge type', `${esc(r.license)} · ${esc(r.charge)}`],
+    ['Existing part could serve?', esc(r.existing)], ['Introduces new pricing/license model?', esc(r.newModel)],
+  ].map(([k,v])=>`<div class="f"><div class="fl">${k}</div><div class="fv">${v}</div></div>`).join('');
+  const rel = r.relevance ? `<div class="f" style="grid-column:1/-1"><div class="fl">Functions engaged (relevance check)</div>
+    <div class="fv">${r.relevance.engaged.length?r.relevance.engaged.map(esc).join(', '):'None flagged'}</div></div>` : '';
+  const hist = r.history.slice().reverse().map(h=>
+    `<div class="hev"><div class="at">${fmt(h.at)}</div><div><b>${esc(h.action)}</b> · <span style="color:var(--dim)">${esc(h.actor)}</span><p>${esc(h.detail)}</p></div></div>`).join('');
+  return `<div class="card det">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+      <div><h2>${esc(r.title)}</h2><div class="rid">${r.id} · ${TYPES[r.type].label}</div></div>
+      <span class="pill ${st.pill}">${st.label}</span>
+    </div>
+    ${trackerHtml(r)}
+    <div class="fgrid">${fields}${rel}
+      <div class="f" style="grid-column:1/-1"><div class="fl">Business justification</div><div class="fv">${esc(r.justification)}</div></div>
+    </div>
+    <table class="lines"><tr><th>Part number</th><th>Description</th><th>Proposed price</th><th>Cur</th></tr>${lines}</table>
+    ${actionHtml(r)}
+    <div class="hist"><h3>Audit trail — every step, timestamped</h3>${hist}</div>
+  </div>`;
+}
+
+/* ============ stage actions ============ */
+function actionHtml(r){
+  if(r.stage==='closed') return `<div class="notice"><b>Closed.</b> Requester was notified with the final part number(s) and effective date. The history below is the audit record.</div>`;
+  if(r.stage==='rejected') return `<div class="notice" style="border-color:rgba(255,107,107,.4)"><b style="color:var(--red)">Rejected.</b> See the audit trail for the reason. The requester can resubmit with changes.</div>`;
+  const owner = OWNS[r.stage];
+  if(owner!==ui.persona)
+    return `<div class="act locked"><div class="who">Waiting on ${owner}</div>
+      <p class="hint">This stage belongs to ${owner}. Switch persona (top right) to act — the clay model simulates all roles with one user.</p></div>`;
+
+  if(r.stage==='triage'){
+    const sug = suggestRoute(r);
+    return `<div class="act"><h3>Stage 2 · Triage and routing</h3><div class="who">Pricing Operations · SLA 2 business days</div>
+      <div class="suggest">Suggested by rule: <b>${sug==='fast'?'Fast track':'Full review'}</b> — ${sug==='full'?'introduces a new pricing/license model or structure':'copy of existing, no new variables'}</div>
+      <div class="radio-route">
+        <label><input type="radio" name="route" value="fast" ${sug==='fast'?'checked':''}><div class="rt" style="color:var(--green)">Fast track</div><p>Clone, in-policy price update, or straightforward retirement → straight to the Operations execution queue.</p></label>
+        <label><input type="radio" name="route" value="full" ${sug==='full'?'checked':''}><div class="rt" style="color:var(--amber)">Full review</div><p>New pricing model, tier model, offering structure, or license model → Strategy review + relevance check.</p></label>
+      </div>
+      <div class="row"><button class="btn good" onclick="doTriage('${r.id}')">Route request</button>
+      <button class="btn danger" onclick="doReject('${r.id}','triage')">Reject / send back</button></div></div>`;
+  }
+
+  if(r.stage==='relevance'){
+    const rows = FUNCTIONS.map(f=>`<div class="qrow"><div class="qn"><b>${f.name}</b><p>${f.q}</p></div>
+      <div class="yn"><button class="yes" data-f="${f.id}" data-v="1" onclick="ynClick(this)">Yes</button>
+      <button class="no" data-f="${f.id}" data-v="0" onclick="ynClick(this)">No</button></div></div>`).join('');
+    return `<div class="act"><h3>Stage 3 · Cross-functional relevance check</h3><div class="who">Pricing Strategy · full review only</div>
+      <p class="hint">Answer each function's relevance question. Only functions flagged “Yes” are engaged — pulled in at intake instead of discovering the product at booking.</p>
+      ${rows}<div class="err" id="relErr">Answer all nine questions first.</div>
+      <div class="row"><button class="btn good" onclick="doRelevance('${r.id}')">Complete relevance check</button></div></div>`;
+  }
+
+  if(r.stage==='strategy'){
+    return `<div class="act"><h3>Stage 4a · Pricing Strategy sign-off</h3><div class="who">Pricing Strategy · commercial design</div>
+      <p class="hint">Approve the commercial design: price, model, structure. (Thresholds will align to delegated pricing authority once the committee grants it.)</p>
+      <label class="fl" style="display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:5px">Decision note</label>
+      <input type="text" id="noteStrategy" placeholder="e.g. Approved within FY27 tier framework">
+      <div class="row"><button class="btn good" onclick="doStrategy('${r.id}',true)">Approve commercial design</button>
+      <button class="btn danger" onclick="doStrategy('${r.id}',false)">Reject</button></div></div>`;
+  }
+
+  if(r.stage==='ops'){
+    return `<div class="act"><h3>Stage 4b · Operations acceptance</h3><div class="who">Pricing Operations · executable?</div>
+      <p class="hint">Accept only if the request is complete, unambiguous, and loadable. Anything missing goes back now, not during the load.</p>
+      <div class="row"><button class="btn good" onclick="doOps('${r.id}')">Accept as executable</button>
+      <button class="btn danger" onclick="doReject('${r.id}','ops')">Reject / send back</button></div></div>`;
+  }
+
+  if(r.stage==='execute'){
+    const needsCreate = r.lines.some(l=>l.pn==='NEW');
+    return `<div class="act"><h3>Stage 5 · Execute and load</h3><div class="who">Pricing Operations</div>
+      <p class="hint">Guardrails are enforced here: the load button stays disabled until both checks are confirmed.</p>
+      <div class="checkrow"><input type="checkbox" id="ckDedupe" onchange="renderExecBtn()"><div><b>Dedupe check run</b> — no existing part or attribute deviation already covers this. Catalog: <span class="mono" style="font-size:11px;color:var(--dim)">${S.catalog.join(' · ')}</span></div></div>
+      <div class="checkrow"><input type="checkbox" id="ckConga" onchange="renderExecBtn()"><div><b>Price authored once in Conga</b> — on the price list item; downstream systems read from there. (Manual step in v1, confirmed here.)</div></div>
+      ${needsCreate?`<p class="hint" style="margin-top:10px">New lines will be assigned generated part numbers on load.</p>`:''}
+      <div class="row"><button class="btn good" id="execBtn" disabled onclick="doExecute('${r.id}')">Load & close request</button></div></div>`;
+  }
+  return '';
+}
+
+function renderExecBtn(){
+  const b=document.getElementById('execBtn');
+  if(b) b.disabled = !(document.getElementById('ckDedupe').checked && document.getElementById('ckConga').checked);
+}
+function ynClick(btn){
+  const f=btn.dataset.f;
+  btn.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  btn.classList.add('on');
+  ynClick.answers = ynClick.answers||{};
+  ynClick.answers[f] = btn.dataset.v==='1';
+}
+
+/* ============ transitions (every one writes the log) ============ */
+function doTriage(id){
+  const r=byId(id); const v=document.querySelector('input[name=route]:checked');
+  r.route=v.value; r.stage = r.route==='fast'?'ops':'relevance';
+  log(r,'Pricing Operations','Triaged → '+(r.route==='fast'?'Fast track':'Full review'),
+    r.route==='fast'?'Copy of existing product, no new variables → Operations execution queue':'New model/structure → Strategy review and relevance check');
+  save(); render();
+}
+function doRelevance(id){
+  const r=byId(id); const a=ynClick.answers||{};
+  if(FUNCTIONS.some(f=>!(f.id in a))){ document.getElementById('relErr').style.display='block'; return; }
+  const engaged=FUNCTIONS.filter(f=>a[f.id]).map(f=>f.name);
+  r.relevance={answers:a, engaged}; r.stage='strategy'; ynClick.answers=null;
+  log(r,'Pricing Strategy','Relevance check complete', engaged.length?'Engaged: '+engaged.join(', '):'No functions flagged');
+  save(); render();
+}
+function doStrategy(id,ok){
+  const r=byId(id); const note=document.getElementById('noteStrategy').value.trim();
+  if(ok){ r.stage='ops'; r.approvals.strategy={ok:true,at:now(),note};
+    log(r,'Pricing Strategy','Commercial design approved', note||'Approved (step 1 of 2)');
+  } else { r.stage='rejected'; r.approvals.strategy={ok:false,at:now(),note};
+    log(r,'Pricing Strategy','Rejected at strategy review', note||'Commercial design not approved');
+  }
+  save(); render();
+}
+function doOps(id){
+  const r=byId(id); r.stage='execute'; r.approvals.ops={ok:true,at:now()};
+  log(r,'Pricing Operations','Accepted as executable','Complete, unambiguous, loadable (step 2 of 2)');
+  save(); render();
+}
+function doReject(id,where){
+  const reason=prompt('Reason (goes in the audit trail):'); if(reason===null) return;
+  const r=byId(id); r.stage='rejected';
+  log(r,OWNS[where],'Rejected at '+(where==='triage'?'triage':'acceptance'), reason||'No reason given');
+  save(); render();
+}
+function doExecute(id){
+  const r=byId(id);
+  const assigned=[];
+  r.lines.forEach(l=>{ if(l.pn==='NEW'){ l.pn=genPN(); assigned.push(l.pn); } });
+  r.lines.forEach(l=>{ if(r.type!=='retire' && !S.catalog.includes(l.pn)) S.catalog.push(l.pn); });
+  if(r.type==='retire') r.lines.forEach(l=>{ S.catalog=S.catalog.filter(p=>p!==l.pn); });
+  r.execution={dedupe:true,conga:true,at:now()};
+  log(r,'Pricing Operations','Executed & loaded',
+    (assigned.length?'Assigned part number(s): '+assigned.join(', ')+' · ':'')+
+    (r.type==='retire'?'Part(s) removed from sellable catalog · ':'')+'Price authored in Conga on the PLI');
+  r.stage='closed';
+  log(r,'System','Closed & requester notified',
+    'Confirmation sent to '+r.requester+' with final part number(s) and effective date '+r.effective+' · field notified');
+  save(); render();
+}
+
+/* ============ new request form ============ */
+function formHtml(){
+  const types=Object.entries(TYPES).map(([k,t],i)=>
+    `<label><input type="radio" name="rtype" value="${k}" ${i===0?'checked':''}><b>${t.label}</b><span>${t.hint}</span></label>`).join('');
+  return `<div class="card formcard">
+    <h2 style="font-size:17px;font-weight:800">New request</h2>
+    <div class="rid" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);margin-bottom:6px">Stage 1 · One front door — every request declares one of five types</div>
+    <label class="fl">Request type</label><div class="typegrid">${types}</div>
+    <div class="g2">
+      <div><label class="fl">Short title</label><input type="text" id="fTitle" placeholder="e.g. Clone: Studio 3-year term"></div>
+      <div><label class="fl">Requester</label><input type="text" id="fReq" placeholder="Name"></div>
+      <div><label class="fl">Function</label><select id="fFn"><option>Product manager</option><option>Pillar lead</option><option>Sales</option></select></div>
+      <div><label class="fl">Pillar / solution</label><input type="text" id="fPillar" placeholder="e.g. Analytics"></div>
+      <div><label class="fl">Target effective date</label><input type="date" id="fEff"></div>
+      <div><label class="fl">License model</label><select id="fLic"><option>Subscription</option><option>Consumption</option><option>Named user</option><option>Concurrent</option><option>Perpetual</option><option>N/A</option></select></div>
+      <div><label class="fl">Charge type</label><select id="fChg"><option>License</option><option>SaaS</option><option>Maintenance</option><option>Services</option><option>N/A</option></select></div>
+      <div><label class="fl">Could an existing part serve instead?</label><select id="fEx"><option>no</option><option>yes</option><option>unsure</option><option>n/a</option></select></div>
+    </div>
+    <label class="fl">Business justification</label><textarea id="fJust" placeholder="Why this, why now"></textarea>
+    <label class="fl">Introduces a new pricing model, tier model, offering structure, or license model?</label>
+    <select id="fNew" style="max-width:200px"><option>no</option><option>yes</option></select>
+    <label class="fl">Line items — affected part numbers, or “NEW”</label>
+    <div id="fLines"></div>
+    <button class="btn ghost" onclick="addLine()">+ Add line</button>
+    <div class="err" id="fErr"></div>
+    <div class="row" style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn good" onclick="submitReq()">Submit request</button>
+      <button class="btn ghost" onclick="ui.mode='empty';render()">Cancel</button>
+    </div></div>`;
+}
+function lineRow(v={pn:'NEW',desc:'',price:'',cur:'USD'}){
+  return `<div class="lineitem"><input type="text" class="lpn" value="${esc(v.pn)}" placeholder="OCT-… or NEW">
+    <input type="text" class="ldesc" value="${esc(v.desc)}" placeholder="Description">
+    <input type="text" class="lprice" value="${esc(v.price)}" placeholder="Price">
+    <select class="lcur"><option>USD</option><option>EUR</option><option>GBP</option></select>
+    <button class="del" onclick="this.parentElement.remove()" title="Remove line">×</button></div>`;
+}
+function addLine(){ document.getElementById('fLines').insertAdjacentHTML('beforeend', lineRow()); }
+function submitReq(){
+  const g=id=>document.getElementById(id).value.trim();
+  const type=document.querySelector('input[name=rtype]:checked').value;
+  const lines=[...document.querySelectorAll('#fLines .lineitem')].map(li=>({
+    pn:li.querySelector('.lpn').value.trim()||'NEW', desc:li.querySelector('.ldesc').value.trim(),
+    price:li.querySelector('.lprice').value.trim(), cur:li.querySelector('.lcur').value}));
+  const err=document.getElementById('fErr');
+  if(!g('fTitle')||!g('fReq')||!g('fPillar')||!g('fEff')||!g('fJust')||!lines.length||lines.some(l=>!l.desc)){
+    err.textContent='Required: title, requester, pillar, effective date, justification, and at least one line item with a description. The form is the front door — incomplete requests are the old inbox problem in disguise.';
+    err.style.display='block'; return;
+  }
+  const r={ id:nextId(), type, title:g('fTitle'), requester:g('fReq'), fn:g('fFn'), pillar:g('fPillar'),
+    justification:g('fJust'), effective:g('fEff'), license:g('fLic'), charge:g('fChg'),
+    existing:g('fEx'), newModel:g('fNew'), lines, stage:'triage', route:null,
+    relevance:null, approvals:{}, execution:{}, history:[] };
+  log(r, r.requester+' (Requester)', 'Submitted', 'Type: '+TYPES[type].label+' · '+lines.length+' line item'+(lines.length>1?'s':''));
+  S.requests.push(r); save();
+  ui.sel=r.id; ui.mode='detail'; ui.tab='open'; render();
+}
+
+/* ============ quote guardrail tester ============ */
+function tryQuote(){
+  const pn=document.getElementById('quotePN').value.trim().toUpperCase();
+  const res=document.getElementById('quoteRes'); if(!pn){res.className='qres';return;}
+  if(S.catalog.includes(pn)){ res.className='qres ok'; res.textContent='✓ '+pn+' is a valid loaded part — quote proceeds.'; }
+  else { res.className='qres block'; res.textContent='✕ '+pn+' is not in the catalog. Quote blocked → routed to deal desk for exception approval. (Guardrail: no part number, no quote.)'; }
+}
+
+/* ============ root render ============ */
+function render(){
+  renderPersona(); renderKpis(); renderQueue();
+  const panel=document.getElementById('panel');
+  if(ui.mode==='new') panel.innerHTML=formHtml();
+  else if(ui.mode==='detail'&&byId(ui.sel)) panel.innerHTML=detailHtml(byId(ui.sel));
+  else panel.innerHTML=`<div class="card empty">Select a request from the queue, or create a new one.<br><br>
+    <span style="font-size:12px">Suggested demo path: as <b>Requester</b> submit a request → as <b>Pricing Operations</b> triage it → (full review) as <b>Pricing Strategy</b> run the relevance check and sign off → as <b>Pricing Operations</b> accept, execute, and load → read the audit trail.</span></div>`;
+  if(ui.mode==='new'&&!document.querySelector('#fLines .lineitem')) addLine();
+}
+
+document.getElementById('newBtn').onclick=()=>{ ui.mode='new'; ynClick.answers=null; render(); };
+document.getElementById('resetBtn').onclick=()=>{ if(confirm('Reset to the seeded demo data? Anything you created will be lost.')){ S=seed(); save(); ui={persona:ui.persona,tab:'action',mode:'empty',sel:null}; render(); } };
+document.getElementById('quoteBtn').onclick=tryQuote;
+document.getElementById('quotePN').addEventListener('keydown',e=>{ if(e.key==='Enter') tryQuote(); });
+
+load(); render();
+</script>
+</body>
+</html>
