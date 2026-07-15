@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.2",
+  "purpose": "Anonymized seed and test data for the PLTS clay model. Structural patterns drawn from real intake traffic; all customers, parts, prices, and people are invented. Raw source data is not stored in this repo (see CLAUDE.md guardrail).",
+  "request_types": ["create_part", "change_price", "change_attributes", "retire_eol", "structure_change"],
+  "flags_added_from_traffic": ["exception (none|limited|eol)", "third_party_royalty (no|yes)", "urgent + blocked_artifact"],
+  "examples": [
+    {
+      "id": "EX-01",
+      "title": "Lease flavor for a limited-status product",
+      "request_type": "create_part",
+      "expected_route": "full_review",
+      "route_reason": "Base product on limited/discontinued status; exception policy requires review",
+      "requester": {"function": "Sales"},
+      "flags": {"exception": "limited", "third_party": "no", "urgent": "no"},
+      "trigger": "Partner evaluation likely to convert to a lease",
+      "failure_modes": ["limited-status check from memory", "two conflicting derived prices in one thread", "approval only in mailbox"],
+      "clay_model_assertion": "Limited-status create must raise an exception flag and route to review; derived price is one computed field",
+      "seeded_as": "PLR-0007"
+    },
+    {
+      "id": "EX-02",
+      "title": "Monthly flavor of an existing annual part",
+      "request_type": "create_part",
+      "expected_route": "fast_track",
+      "route_reason": "Clone of an existing part with one attribute change (billing frequency)",
+      "requester": {"function": "Order Desk"},
+      "flags": {"exception": "none", "third_party": "no", "urgent": "no"},
+      "trigger": "Live order needs a monthly option alongside the annual part",
+      "failure_modes": ["routing by manual forwarding", "justification in a nested thread", "nothing structured for audit"],
+      "clay_model_assertion": "Clone references parent part and routes straight to the Operations queue"
+    },
+    {
+      "id": "EX-03",
+      "title": "Third-party add-on wrongly swept into annual increase",
+      "request_type": "change_price",
+      "expected_route": "fast_track",
+      "route_reason": "Error correction, revert to previously agreed values",
+      "requester": {"function": "Strategy and Enablement"},
+      "flags": {"exception": "none", "third_party": "yes", "urgent": "no"},
+      "trigger": "Royalty product caught by the annual increase despite a separate negotiated change",
+      "failure_modes": ["no third-party exclusion flag on the increase run", "error found by accident", "blast radius answered from memory"],
+      "clay_model_assertion": "Parts carry a third-party/royalty flag; correction type records the causing run",
+      "seeded_as": "PLR-0009"
+    },
+    {
+      "id": "EX-04",
+      "title": "New offering structure (editions and bundling)",
+      "request_type": "structure_change",
+      "expected_route": "full_review",
+      "route_reason": "New editions, bundling, and license-model decisions",
+      "requester": {"function": "Strategy Enablement"},
+      "flags": {"exception": "none", "third_party": "no", "urgent": "no"},
+      "trigger": "Go-to-market decision: drop one edition, bundle an add-on into the initial purchase",
+      "failure_modes": ["decision email stuck in an outbox for a week", "no shared home for decision + pricebook + advisory", "no visibility the process was blocked"],
+      "clay_model_assertion": "Triggers relevance questions and a visible status so a stalled step is seen"
+    },
+    {
+      "id": "EX-05",
+      "title": "Urgent hosting-fee part blocking a renewal invoice",
+      "request_type": "create_part",
+      "expected_route": "fast_track",
+      "route_reason": "Straightforward new fee part; urgent because a live invoice is blocked",
+      "requester": {"function": "Maintenance Contracts"},
+      "flags": {"exception": "none", "third_party": "no", "urgent": "yes", "blocked_artifact": "renewal invoice"},
+      "trigger": "Renewal invoice blocked: quote line uses a SaaS license part, matching hosting part does not exist",
+      "failure_modes": ["part created reactively during billing", "material attribute settled by a one-word email", "invoice was the only SLA"],
+      "clay_model_assertion": "Urgent flag requires naming the blocked downstream artifact",
+      "seeded_as": "PLR-0008"
+    }
+  ],
+  "cross_cutting": {
+    "no_single_front_door": "Multiple intake aliases plus direct personal email; cases only threaded mail, no routing/fields/status/queue",
+    "approver_concentration": "Every thread resolved on one person replying by email",
+    "deal_driven_share": "4 of 5 requests originated inside a live quote, order, or renewal",
+    "schema_gaps_closed": ["limited_status_or_eol_exception_flag", "third_party_royalty_flag", "urgent_flag_with_blocked_artifact"]
+  }
+}

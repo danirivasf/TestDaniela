@@ -77,6 +77,11 @@ body{background:var(--ink);color:var(--paper);font-family:'Archivo',-apple-syste
 .pill.t{background:var(--ink3);color:var(--grey)}
 .pill.r-fast{background:rgba(61,220,151,.12);color:var(--green)}
 .pill.r-full{background:rgba(255,180,84,.12);color:var(--amber)}
+.pill.f-urgent{background:rgba(255,107,107,.14);color:var(--red)}
+.pill.f-exc{background:rgba(255,180,84,.14);color:var(--amber)}
+.pill.f-tp{background:rgba(153,51,255,.16);color:#C79BFF}
+.banner{border:1px solid rgba(255,107,107,.35);background:rgba(255,107,107,.06);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:var(--grey);display:flex;flex-direction:column;gap:5px}
+.banner b{color:var(--paper);font-weight:600}
 
 /* detail */
 .det h2{font-size:17px;font-weight:800;margin-bottom:2px}
@@ -346,13 +351,49 @@ function seed(){
       {at:daysAgo(12), actor:'Pricing Operations', action:'Rejected at acceptance', detail:'Dedupe check: OCT-2288-AV (viewer seat) already exists — guardrail: dedupe before create. Requester pointed to existing part.'},
     ]}));
 
-  return { counter:6, requests:reqs,
+  // 7 — limited-status create → exception forces full review (anonymized from real traffic EX-01)
+  reqs.push(mk({ id:'PLR-0007', type:'create', title:'Lease flavor for Plant Modeler (limited-status product)',
+    requester:'S. Alvarez', fn:'Sales', pillar:'Infrastructure / FieldOps',
+    justification:'Partner evaluation likely to convert to a lease purchase. The base product is on limited/discontinued status, so this needs an exception. Note: derived price should be a single computed field — a past request produced two conflicting lease prices in one thread.',
+    effective:'2026-09-15', license:'Lease', charge:'License', existing:'no', newModel:'no',
+    exception:'limited', thirdParty:'no', urgent:'no', blockedArtifact:'',
+    lines:[{pn:'NEW', desc:'Plant Modeler — CH lease flavor', price:'4990', cur:'USD'}],
+    stage:'triage', route:null,
+    history:[{at:daysAgo(2), actor:'S. Alvarez (Requester)', action:'Submitted', detail:'Type: Create part number · 1 line item · flags: limited-status'}]}));
+
+  // 8 — urgent create, blocked renewal invoice (anonymized from EX-05)
+  reqs.push(mk({ id:'PLR-0008', type:'create', title:'Hosting fee part to unblock a renewal invoice',
+    requester:'M. Okafor', fn:'Sales', pillar:'Asset Management',
+    justification:'Renewal invoice cannot be processed: the quote line points at a SaaS license part and the matching hosting-fee part does not exist. License model needs confirming (monthly vs annual).',
+    effective:'2026-08-01', license:'Subscription', charge:'SaaS', existing:'no', newModel:'no',
+    exception:'none', thirdParty:'no', urgent:'yes', blockedArtifact:'Renewal invoice blocked — hosting line has no matching part',
+    lines:[{pn:'NEW', desc:'Asset Management — SaaS hosting fee', price:'', cur:'USD'}],
+    stage:'triage', route:null,
+    history:[{at:daysAgo(0,4), actor:'M. Okafor (Requester)', action:'Submitted', detail:'Type: Create part number · 1 line item · flags: urgent'}]}));
+
+  // 9 — third-party price correction (anonymized from EX-03)
+  reqs.push(mk({ id:'PLR-0009', type:'price', title:'Revert third-party add-on wrongly swept into annual uplift',
+    requester:'R. Chen', fn:'Pillar lead', pillar:'Design Tools',
+    justification:'A third-party (royalty) add-on was caught by the September ~5% annual increase, but its prices were already negotiated separately in January. Revert to the January values. Check whether other royalty products in the same line were affected.',
+    effective:'2026-09-05', license:'Subscription', charge:'License', existing:'n/a', newModel:'no',
+    exception:'none', thirdParty:'yes', urgent:'no', blockedArtifact:'',
+    lines:[{pn:'OCT-6120-CP', desc:'Design Tools — third-party add-on, revert to Jan list', price:'740', cur:'USD'}],
+    stage:'triage', route:null,
+    history:[{at:daysAgo(1), actor:'R. Chen (Requester)', action:'Submitted', detail:'Type: Change price · 1 line item · flags: third-party'}]}));
+
+  return { counter:9, requests:reqs,
     catalog:['OCT-2201-AS','OCT-2288-AV','OCT-5521-FM','OCT-3345-ST','OCT-4410-SB','OCT-6120-CP','OCT-7010-FO'] };
 }
 
 /* ============ routing suggestion (spec rule) ============ */
 function suggestRoute(r){
+  if(r.exception==='limited') return 'full'; // limited-status create → exception policy needs management approval (real traffic: EX-01)
   return (r.newModel==='yes' || r.type==='structure') ? 'full' : 'fast';
+}
+function routeReason(r){
+  if(r.exception==='limited') return 'product on limited/discontinued status → exception policy requires review';
+  if(r.newModel==='yes' || r.type==='structure') return 'introduces a new pricing/license model or structure';
+  return 'copy of existing, no new variables';
 }
 function stagePath(r){ return r.route ? PATH[r.route] : ['triage']; }
 
@@ -395,6 +436,7 @@ function renderQueue(){
       <div class="top"><span class="rid">${r.id}</span><span class="age">${age(r.history[0].at)}</span></div>
       <b>${esc(r.title)}</b>
       <div class="meta"><span class="pill t">${TYPES[r.type].label}</span>
+        ${r.urgent==='yes'?'<span class="pill f-urgent">Urgent</span>':''}
         ${r.route?`<span class="pill r-${r.route}">${r.route==='fast'?'Fast track':'Full review'}</span>`:''}
         <span class="pill ${st.pill}">${st.label}</span></div>
     </div>`;
@@ -419,6 +461,14 @@ function trackerHtml(r){
   return `<div class="tracker">${steps.join('')}</div>`;
 }
 
+function flagsHtml(r){
+  const c=[];
+  if(r.urgent==='yes') c.push('<span class="pill f-urgent">Urgent</span>');
+  if(r.exception==='limited') c.push('<span class="pill f-exc">Limited status</span>');
+  if(r.exception==='eol') c.push('<span class="pill f-exc">EOL exception</span>');
+  if(r.thirdParty==='yes') c.push('<span class="pill f-tp">Third-party / royalty</span>');
+  return c.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${c.join('')}</div>`:'';
+}
 function detailHtml(r){
   const st = STAGES[r.stage];
   const lines = r.lines.map(l=>`<tr><td class="pn">${esc(l.pn)}</td><td>${esc(l.desc)}</td><td>${l.price?esc(l.price):'—'}</td><td>${esc(l.cur)}</td></tr>`).join('');
@@ -426,9 +476,15 @@ function detailHtml(r){
     ['Requester', `${esc(r.requester)} · ${esc(r.fn)}`], ['Pillar / solution', esc(r.pillar)],
     ['Target effective date', esc(r.effective)], ['License model · charge type', `${esc(r.license)} · ${esc(r.charge)}`],
     ['Existing part could serve?', esc(r.existing)], ['Introduces new pricing/license model?', esc(r.newModel)],
+    ['Lifecycle status', esc(r.exception||'none')], ['Third-party / royalty', esc(r.thirdParty||'no')],
   ].map(([k,v])=>`<div class="f"><div class="fl">${k}</div><div class="fv">${v}</div></div>`).join('');
   const rel = r.relevance ? `<div class="f" style="grid-column:1/-1"><div class="fl">Functions engaged (relevance check)</div>
     <div class="fv">${r.relevance.engaged.length?r.relevance.engaged.map(esc).join(', '):'None flagged'}</div></div>` : '';
+  const flagChips = flagsHtml(r);
+  const banner = (r.urgent==='yes'||r.exception==='limited') ? `<div class="banner">
+    ${r.urgent==='yes'?`<div><b>Urgent</b> — blocked downstream artifact: ${esc(r.blockedArtifact||'not specified')}</div>`:''}
+    ${r.exception==='limited'?`<div><b>Limited-status exception</b> — creating against a product on limited/discontinued status; routed to review by policy.</div>`:''}
+  </div>` : '';
   const hist = r.history.slice().reverse().map(h=>
     `<div class="hev"><div class="at">${fmt(h.at)}</div><div><b>${esc(h.action)}</b> · <span style="color:var(--dim)">${esc(h.actor)}</span><p>${esc(h.detail)}</p></div></div>`).join('');
   return `<div class="card det">
@@ -436,7 +492,9 @@ function detailHtml(r){
       <div><h2>${esc(r.title)}</h2><div class="rid">${r.id} · ${TYPES[r.type].label}</div></div>
       <span class="pill ${st.pill}">${st.label}</span>
     </div>
+    ${flagChips}
     ${trackerHtml(r)}
+    ${banner}
     <div class="fgrid">${fields}${rel}
       <div class="f" style="grid-column:1/-1"><div class="fl">Business justification</div><div class="fv">${esc(r.justification)}</div></div>
     </div>
@@ -458,7 +516,7 @@ function actionHtml(r){
   if(r.stage==='triage'){
     const sug = suggestRoute(r);
     return `<div class="act"><h3>Stage 2 · Triage and routing</h3><div class="who">Pricing Operations · SLA 2 business days</div>
-      <div class="suggest">Suggested by rule: <b>${sug==='fast'?'Fast track':'Full review'}</b> — ${sug==='full'?'introduces a new pricing/license model or structure':'copy of existing, no new variables'}</div>
+      <div class="suggest">Suggested by rule: <b>${sug==='fast'?'Fast track':'Full review'}</b> — ${routeReason(r)}</div>
       <div class="radio-route">
         <label><input type="radio" name="route" value="fast" ${sug==='fast'?'checked':''}><div class="rt" style="color:var(--green)">Fast track</div><p>Clone, in-policy price update, or straightforward retirement → straight to the Operations execution queue.</p></label>
         <label><input type="radio" name="route" value="full" ${sug==='full'?'checked':''}><div class="rt" style="color:var(--amber)">Full review</div><p>New pricing model, tier model, offering structure, or license model → Strategy review + relevance check.</p></label>
@@ -590,6 +648,15 @@ function formHtml(){
     <label class="fl">Business justification</label><textarea id="fJust" placeholder="Why this, why now"></textarea>
     <label class="fl">Introduces a new pricing model, tier model, offering structure, or license model?</label>
     <select id="fNew" style="max-width:200px"><option>no</option><option>yes</option></select>
+    <div style="border-top:1px dashed var(--line);margin-top:16px;padding-top:4px">
+      <div class="rid" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:10px">Flags — added from real intake traffic</div>
+      <div class="g2">
+        <div><label class="fl">Product lifecycle status</label><select id="fExc"><option value="none">Active / normal</option><option value="limited">Limited / discontinued (exception)</option><option value="eol">EOL / retired (exception)</option></select></div>
+        <div><label class="fl">Third-party or royalty product?</label><select id="fTP"><option>no</option><option>yes</option></select></div>
+        <div><label class="fl">Urgent?</label><select id="fUrgent" onchange="document.getElementById('fBlockedWrap').style.display=this.value==='yes'?'block':'none'"><option>no</option><option>yes</option></select></div>
+        <div id="fBlockedWrap" style="display:none"><label class="fl">Blocked downstream artifact (required if urgent)</label><input type="text" id="fBlocked" placeholder="e.g. renewal invoice / open quote / stuck order"></div>
+      </div>
+    </div>
     <label class="fl">Line items — affected part numbers, or “NEW”</label>
     <div id="fLines"></div>
     <button class="btn ghost" onclick="addLine()">+ Add line</button>
@@ -614,15 +681,22 @@ function submitReq(){
     pn:li.querySelector('.lpn').value.trim()||'NEW', desc:li.querySelector('.ldesc').value.trim(),
     price:li.querySelector('.lprice').value.trim(), cur:li.querySelector('.lcur').value}));
   const err=document.getElementById('fErr');
+  const urgent=g('fUrgent'), blocked=g('fBlocked');
   if(!g('fTitle')||!g('fReq')||!g('fPillar')||!g('fEff')||!g('fJust')||!lines.length||lines.some(l=>!l.desc)){
     err.textContent='Required: title, requester, pillar, effective date, justification, and at least one line item with a description. The form is the front door — incomplete requests are the old inbox problem in disguise.';
     err.style.display='block'; return;
   }
+  if(urgent==='yes' && !blocked){
+    err.textContent='Urgent requests must name the blocked downstream artifact (invoice, quote, or order). In the old world priority was exclamation marks; here it is data.';
+    err.style.display='block'; return;
+  }
   const r={ id:nextId(), type, title:g('fTitle'), requester:g('fReq'), fn:g('fFn'), pillar:g('fPillar'),
     justification:g('fJust'), effective:g('fEff'), license:g('fLic'), charge:g('fChg'),
-    existing:g('fEx'), newModel:g('fNew'), lines, stage:'triage', route:null,
+    existing:g('fEx'), newModel:g('fNew'), exception:g('fExc'), thirdParty:g('fTP'), urgent, blockedArtifact:blocked,
+    lines, stage:'triage', route:null,
     relevance:null, approvals:{}, execution:{}, history:[] };
-  log(r, r.requester+' (Requester)', 'Submitted', 'Type: '+TYPES[type].label+' · '+lines.length+' line item'+(lines.length>1?'s':''));
+  const flagNote=[urgent==='yes'?'urgent':'', g('fExc')!=='none'?g('fExc')+'-status':'', g('fTP')==='yes'?'third-party':''].filter(Boolean).join(', ');
+  log(r, r.requester+' (Requester)', 'Submitted', 'Type: '+TYPES[type].label+' · '+lines.length+' line item'+(lines.length>1?'s':'')+(flagNote?' · flags: '+flagNote:''));
   S.requests.push(r); save();
   ui.sel=r.id; ui.mode='detail'; ui.tab='open'; render();
 }
