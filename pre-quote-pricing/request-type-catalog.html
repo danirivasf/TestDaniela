@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Quote Pricing — Request-Type & Field Catalog (Straw Man)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1A1A1F; --ink2:#222229; --ink3:#2A2A33; --line:#34343E;
+  --paper:#F4F5F7; --grey:#B2B8C4; --dim:#7E8494;
+  --cyan:#00FFFF; --magenta:#FF00C7; --purple:#9933FF;
+  --green:#3DDC97; --amber:#FFB454; --red:#FF6B6B;
+}
+body{background:var(--ink);color:var(--paper);font-family:'Archivo',-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.55}
+.mono{font-family:'IBM Plex Mono',Consolas,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 70px}
+.mast{border-bottom:1px solid var(--line);padding:34px 0 22px;margin-bottom:26px}
+.mast .inner{max-width:1080px;margin:0 auto;padding:0 20px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px}
+.mast h1{font-size:25px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.mast .sub{color:var(--grey);font-size:13.5px;margin-top:9px;max-width:800px}
+.metabar{display:flex;gap:22px;flex-wrap:wrap;margin-top:15px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+.metabar b{color:var(--grey);font-weight:500}
+.strawbadge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);border:1px dashed rgba(255,180,84,.5);border-radius:6px;padding:3px 9px;margin-left:10px;vertical-align:3px}
+
+.callout{border:1px solid rgba(0,255,255,.3);background:rgba(0,255,255,.04);border-radius:12px;padding:15px 18px;margin-bottom:26px}
+.callout b{color:var(--cyan)}
+.callout p{color:var(--grey);font-size:13px;margin-top:4px}
+
+.sh{display:flex;align-items:baseline;gap:12px;margin:30px 0 8px}
+.sh .bar{width:26px;height:3px;border-radius:2px;flex-shrink:0;position:relative;top:-3px}
+.sh h2{font-size:17px;font-weight:700;letter-spacing:-.005em}
+.lede{color:var(--grey);font-size:13.5px;max-width:840px;margin-bottom:16px}
+
+/* common fields band */
+.common{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:15px 18px;margin-bottom:24px}
+.common h3{font-size:13.5px;font-weight:700;margin-bottom:4px}
+.common p{color:var(--dim);font-size:12px;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:12px;background:var(--ink);border:1px solid var(--line);border-radius:7px;padding:4px 10px;color:var(--grey)}
+.chip.req::after{content:" *";color:var(--red)}
+
+/* type cards */
+.type{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.type .head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:3px}
+.type .tn{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);margin-right:8px}
+.type h3{font-size:15px;font-weight:700;display:inline}
+.type .what{color:var(--grey);font-size:12.5px;margin:6px 0 12px}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;border-radius:20px;padding:3px 9px}
+.pill.fast{background:rgba(61,220,151,.12);color:var(--green)}
+.pill.review{background:rgba(255,180,84,.12);color:var(--amber)}
+.pill.thresh{background:rgba(153,51,255,.16);color:#C79BFF}
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.block .bl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.fieldlist{display:flex;flex-wrap:wrap;gap:6px}
+.fieldlist .chip{font-size:11.5px;padding:3px 9px}
+.breaks{border-left:2px solid rgba(255,107,107,.5);padding-left:11px}
+.breaks p{color:var(--grey);font-size:12px}
+.kq{border-top:1px dashed var(--line);margin-top:12px;padding-top:9px;font-size:12px;color:var(--grey)}
+.kq b{color:var(--amber);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+
+.assume{background:var(--ink2);border:1px solid rgba(255,180,84,.35);border-radius:12px;padding:16px 18px;margin-top:26px}
+.assume h3{font-size:14px;color:var(--amber);font-weight:700;margin-bottom:9px}
+ul.tight{list-style:none}
+ul.tight li{padding-left:16px;position:relative;margin-bottom:7px;color:var(--grey);font-size:12.5px}
+ul.tight li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:2px;background:var(--line)}
+.footer{border-top:1px solid var(--line);margin-top:36px;padding-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--dim);display:flex;gap:20px;flex-wrap:wrap}
+@media print{body{background:#fff;color:#000}.type,.common,.callout,.assume{border-color:#ccc}}
+</style>
+</head>
+<body>
+
+<header class="mast"><div class="inner">
+  <div class="eyebrow">Octave · Pricing and Commercial Strategy</div>
+  <h1>Pre-Quote Pricing — Request-Type &amp; Field Catalog<span class="strawbadge">Straw man · react &amp; correct</span></h1>
+  <div class="sub">A first-principles draft of the pricing changes that happen <i>before</i> a quote goes out: the request types, the fields each one needs, how it should route, and where it breaks today. Built to be argued with — the point of the scoping call is to break and extend it, not approve it.</div>
+  <div class="metabar">
+    <span><b>Status</b> · Straw man v0.1</span>
+    <span><b>For</b> · Pre-quote scoping call (Kevin)</span>
+    <span><b>Owner</b> · Pricing and Commercial Strategy</span>
+    <span><b>Sibling to</b> · Product Licensing Intake</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+  <div class="callout">
+    <b>How to read this.</b>
+    <p>These six types were drafted from first principles plus the one worked example (Felipe's) — <i>not</i> reconstructed from the ticket log, because the ticket log doesn't hold this data reliably. That absence is the headline finding, not a gap in this doc: the future system exists precisely because today's requests live in email, Teams, and spreadsheets with no record of who asked or who approved. So the call's job is to confirm the list is complete, split correctly, and has the right required fields. Fields marked <span style="color:var(--red)">*</span> are proposed as required.</p>
+  </div>
+
+  <div class="common">
+    <h3>Common fields — every request carries these</h3>
+    <p>Proposed shared header, so any request is recorded, routable, and auditable regardless of type.</p>
+    <div class="chips">
+      <span class="chip req">Requester + team</span>
+      <span class="chip req">Request type</span>
+      <span class="chip">Opportunity / quote / deal reference</span>
+      <span class="chip req">Customer / account + region</span>
+      <span class="chip req">Business justification</span>
+      <span class="chip req">Needed-by date</span>
+      <span class="chip">Urgent? + blocked artifact (quote / order / invoice)</span>
+      <span class="chip">Product(s) / part number(s), or "new"</span>
+    </div>
+  </div>
+
+  <div class="sh"><div class="bar" style="background:var(--cyan)"></div><h2>The six request types</h2></div>
+  <div class="lede">Each maps to a routing default — <span style="color:var(--green)">fast track</span> (straightforward, straight to execution), <span style="color:var(--amber)">full review</span> (new commercial design), or <span style="color:#C79BFF">threshold</span> (routing depends on the amount, tied to delegated authority). These defaults mirror the product-licensing intake so the two systems behave consistently.</div>
+
+  <div class="type">
+    <div class="head"><div><span class="tn">01</span><h3>New-product pricing</h3></div><span class="pill review">Full review</span></div>
+    <div class="what">Setting the price for a product or offering that isn't in the price book yet, so it can be quoted.</div>
+    <div class="grid">
+      <div class="block"><div class="bl">Type-specific fields</div>
+        <div class="fieldlist">
+          <span class="chip req">Offering / product name</span><span class="chip req">Pricing model (subscription / consumption / perpetual / …)</span>
+          <span class="chip req">List price + currency</span><span class="chip">Charge type</span>
+          <span class="chip">Comparable existing product (benchmark)</span><span class="chip">GA / launch date</span>
+        </div>
+      </div>
+      <div class="block"><div class="bl">Where it breaks today</div>
+        <div class="breaks"><p>Price is decided in a spreadsheet and never recorded against a part; the launch waits on it; no benchmark trail.</p></div>
+      </div>
+    </div>
+    <div class="kq"><b>Ask Kevin</b> &nbsp;Does this overlap with the product-licensing "create part number" flow, or is pre-quote pricing decided <i>before</i> the part exists — i.e. is this the same request seen from two sides?</div>
+  </div>
+
+  <div class="type">
+    <div class="head"><div><span class="tn">02</span><h3>Pre-quote discount / exception approval</h3></div><span class="pill thresh">Threshold</span></div>
+    <div class="what">A discount beyond standard, or a non-standard term, needed to quote a specific deal.</div>
+    <div class="grid">
+      <div class="block"><div class="bl">Type-specific fields</div>
+        <div class="fieldlist">
+          <span class="chip req">Standard price</span><span class="chip req">Requested price (→ discount %)</span>
+          <span class="chip req">Reason / competitive context</span><span class="chip">Deal size + term</span>
+          <span class="chip req">Approver tier needed</span><span class="chip">Approval expiry date</span>
+        </div>
+      </div>
+      <div class="block"><div class="bl">Where it breaks today</div>
+        <div class="breaks"><p>Approval is a one-line email, with no threshold logic, no expiry, and no record — the single-point bottleneck.</p></div>
+      </div>
+    </div>
+    <div class="kq"><b>Ask Kevin</b> &nbsp;What are the current discount thresholds and who approves each tier? (This is what turns routing from a guess into a rule.)</div>
+  </div>
+
+  <div class="type">
+    <div class="head"><div><span class="tn">03</span><h3>Region or currency setup</h3></div><span class="pill fast">Fast / review</span></div>
+    <div class="what">Enabling an existing product to be sold in a new region or currency.</div>
+    <div class="grid">
+      <div class="block"><div class="bl">Type-specific fields</div>
+        <div class="fieldlist">
+          <span class="chip req">Product / part</span><span class="chip req">Target region(s)</span>
+          <span class="chip req">Target currency(ies)</span><span class="chip req">Price basis (FX convert vs locally set)</span>
+          <span class="chip">Effective date</span><span class="chip">Tax / legal-entity notes</span>
+        </div>
+      </div>
+      <div class="block"><div class="bl">Where it breaks today</div>
+        <div class="breaks"><p>Done ad hoc with inconsistent FX; no policy applied; nothing recorded, so the next region starts from scratch.</p></div>
+      </div>
+    </div>
+    <div class="kq"><b>Ask Kevin</b> &nbsp;Is there an approved FX / localization policy? If yes, straight conversion is fast-track; if each case is bespoke, it's review.</div>
+  </div>
+
+  <div class="type">
+    <div class="head"><div><span class="tn">04</span><h3>Bundle or packaging change</h3></div><span class="pill review">Full review</span></div>
+    <div class="what">Combining or splitting products into a sellable bundle, or changing what's inside one.</div>
+    <div class="grid">
+      <div class="block"><div class="bl">Type-specific fields</div>
+        <div class="fieldlist">
+          <span class="chip req">Bundle name</span><span class="chip req">Component parts + quantities</span>
+          <span class="chip req">Bundle price vs sum-of-parts (→ implied discount)</span><span class="chip">Replaces / deprecates which parts</span>
+          <span class="chip">Effective date</span>
+        </div>
+      </div>
+      <div class="block"><div class="bl">Where it breaks today</div>
+        <div class="breaks"><p>Bundles get assembled inside individual quotes ad hoc; there's no canonical bundle definition to reuse or audit.</p></div>
+      </div>
+    </div>
+    <div class="kq"><b>Ask Kevin</b> &nbsp;Are bundles a real catalog object today, or assembled per quote every time?</div>
+  </div>
+
+  <div class="type">
+    <div class="head"><div><span class="tn">05</span><h3>Custom / customer-specific part creation</h3></div><span class="pill fast">Fast + dedupe</span></div>
+    <div class="what">A one-off or customer-specific part needed to quote a particular deal.</div>
+    <div class="grid">
+      <div class="block"><div class="bl">Type-specific fields</div>
+        <div class="fieldlist">
+          <span class="chip req">Base / parent part</span><span class="chip req">What's customized</span>
+          <span class="chip req">Customer</span><span class="chip">One-time vs reusable</span>
+          <span class="chip">Price</span><span class="chip req">Why an existing part won't serve (dedupe)</span>
+        </div>
+      </div>
+      <div class="block"><div class="bl">Where it breaks today</div>
+        <div class="breaks"><p>Custom parts proliferate with no dedupe and no reuse — the root of catalog sprawl on the licensing side too.</p></div>
+      </div>
+    </div>
+    <div class="kq"><b>Ask Kevin</b> &nbsp;What share of "custom" parts are actually reusable? That number is the sprawl driver and the case for a dedupe gate.</div>
+  </div>
+
+  <div class="type">
+    <div class="head"><div><span class="tn">06</span><h3>Promotional pricing</h3></div><span class="pill review">Review + expiry</span></div>
+    <div class="what">A time-boxed promotion or discount on a product or set of products.</div>
+    <div class="grid">
+      <div class="block"><div class="bl">Type-specific fields</div>
+        <div class="fieldlist">
+          <span class="chip req">Promo name</span><span class="chip req">Products in scope</span>
+          <span class="chip req">Promo price or % off</span><span class="chip req">Start + end date</span>
+          <span class="chip">Eligibility (region / segment / deal size)</span><span class="chip">Stackable with other discounts?</span>
+        </div>
+      </div>
+      <div class="block"><div class="bl">Where it breaks today</div>
+        <div class="breaks"><p>Promos linger past their expiry; there's no central record and no clean way to audit the revenue impact.</p></div>
+      </div>
+    </div>
+    <div class="kq"><b>Ask Kevin</b> &nbsp;Who owns promo sign-off, and how should expiry be enforced so a promo can't outlive its end date?</div>
+  </div>
+
+  <div class="sh"><div class="bar" style="background:var(--magenta)"></div><h2>Shared mechanics (inherited from the intake design)</h2></div>
+  <div class="common" style="margin-top:2px">
+    <div class="chips">
+      <span class="chip">Two-step approval: commercial sign-off → operations accept</span>
+      <span class="chip">Timestamped audit trail on every request</span>
+      <span class="chip">"No part number / no price, no quote" guardrail</span>
+      <span class="chip">Deal-desk exception path</span>
+      <span class="chip">Urgent = the blocked artifact is a required field</span>
+    </div>
+  </div>
+
+  <div class="assume">
+    <h3>Assumptions to confirm on the call</h3>
+    <ul class="tight">
+      <li>These six types are <b>complete</b> — nothing common is missing — and <b>non-overlapping</b>. Most likely correction: whether "new-product pricing" and "custom part creation" collapse into, or split from, the licensing-side "create part number".</li>
+      <li>Discount / exception routing is <b>threshold-based</b>, which assumes delegated pricing authority exists or is being defined. If it isn't yet, everything escalates until it is.</li>
+      <li>Pre-quote pricing is a <b>sibling</b> to product-licensing intake, sharing the chassis (routing, approval, audit) but its own request types. Confirm they aren't actually one system.</li>
+      <li>The required-field marks (<span style="color:var(--red)">*</span>) are a proposal; the practitioner questionnaire and the forwarded email threads will correct them.</li>
+      <li>Once validated, this becomes a <b>live clay-model straw man</b> like the intake prototype — reactable, not just readable.</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    <span>Internal straw man · do not distribute externally</span>
+    <span>Pricing and Commercial Strategy · Octave</span>
+    <span>Sibling: ../spec/product-licensing-intake-scoping.html</span>
+  </div>
+
+</div>
+</body>
+</html>
