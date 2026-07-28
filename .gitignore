@@ -1,0 +1,34 @@
+# Certificates and keys — never commit these
+*.pfx
+*.pem
+*.key
+*.p12
+*.cer
+*.crt
+cert.b64
+*.b64
+
+# Secrets
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.local.json
+
+# Power Platform build output
+out/
+*.zip
+
+# MCP token cache
+.ms365-mcp-token*
+.mcp-tokens/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Node
+node_modules/

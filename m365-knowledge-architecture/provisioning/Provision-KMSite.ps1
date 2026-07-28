@@ -98,6 +98,21 @@ Add-PnPField -DisplayName "Retention Label" -InternalName "KMRetentionLabel" -Ty
     "Transient-30d", "Standard-3yr", "Financial-7yr", "Legal-Hold", "Permanent"
 ) -ErrorAction SilentlyContinue
 
+# ── Meeting series columns (see meetings/meeting-series-model.md) ──────────────
+
+Add-PnPField -DisplayName "Series ID" -InternalName "KMSeriesId" -Type Text -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Series Name" -InternalName "KMSeriesName" -Type Text -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Series Slug" -InternalName "KMSeriesSlug" -Type Text -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Is Recurring" -InternalName "KMIsRecurring" -Type Boolean -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Occurrence Number" -InternalName "KMOccurrenceNumber" -Type Number -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Cadence" -InternalName "KMCadence" -Type Choice -Group $groupName -AddToDefaultView $false -Choices @(
+    "Daily", "Weekly", "Biweekly", "Monthly", "Quarterly", "Ad-hoc"
+) -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Series OKR Locked" -InternalName "KMSeriesOKRLocked" -Type Boolean -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Previous Occurrence URL" -InternalName "KMPreviousOccurrenceUrl" -Type URL -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Open Action Count" -InternalName "KMOpenActionCount" -Type Number -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+Add-PnPField -DisplayName "Attendee Count" -InternalName "KMAttendeeCount" -Type Number -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
+
 Write-Host "  Site columns created." -ForegroundColor Green
 
 # ── 2. Document Libraries ─────────────────────────────────────────────────────
@@ -138,7 +153,11 @@ $metadataColumns = @(
     "KMReviewedBy", "KMReviewedDate", "KMOverrideReason", "KMRetentionLabel"
 )
 
-$meetingColumns   = @("KMMeetingDate")
+$meetingColumns   = @(
+    "KMMeetingDate", "KMSeriesId", "KMSeriesName", "KMSeriesSlug", "KMIsRecurring",
+    "KMOccurrenceNumber", "KMCadence", "KMSeriesOKRLocked",
+    "KMPreviousOccurrenceUrl", "KMOpenActionCount", "KMAttendeeCount"
+)
 $emailColumns     = @("KMEmailSentDate")
 
 foreach ($lib in $libraries) {
@@ -161,6 +180,60 @@ foreach ($col in $emailColumns) {
 }
 
 Write-Host "  Metadata columns added." -ForegroundColor Green
+
+# ── 3b. Meeting Series Structure ──────────────────────────────────────────────
+
+Write-Host "`n[3b] Setting up meeting series structure..." -ForegroundColor Cyan
+
+# Index SeriesId — required for series views to work past the 5,000 item list view threshold
+try {
+    $seriesField = Get-PnPField -List "meeting-transcripts" -Identity "KMSeriesId" -ErrorAction Stop
+    $seriesField.Indexed = $true
+    $seriesField.Update()
+    Invoke-PnPQuery
+    Write-Host "  Indexed KMSeriesId on meeting-transcripts." -ForegroundColor Gray
+} catch {
+    Write-Host "  Could not index KMSeriesId (non-fatal): $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
+# Root folders: _Series holds recurring meetings, _OneOff holds everything else
+foreach ($folder in @("_Series", "_OneOff")) {
+    try {
+        Resolve-PnPFolder -SiteRelativePath "meeting-transcripts/$folder" -ErrorAction Stop | Out-Null
+        Write-Host "  Folder ready: meeting-transcripts/$folder" -ForegroundColor Gray
+    } catch {
+        Write-Host "  Could not create folder $folder : $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+# Series-aware views
+try {
+    Add-PnPView -List "meeting-transcripts" -Title "By Series" `
+        -Fields "DocIcon","LinkFilename","KMSeriesName","KMOccurrenceNumber","KMMeetingDate","KMObjective","KMOpenActionCount","KMConfidenceScore" `
+        -Query "<GroupBy Collapse='TRUE'><FieldRef Name='KMSeriesName' /></GroupBy><OrderBy><FieldRef Name='KMOccurrenceNumber' Ascending='FALSE' /></OrderBy>" `
+        -ErrorAction SilentlyContinue | Out-Null
+
+    Add-PnPView -List "meeting-transcripts" -Title "Stale Actions" `
+        -Fields "DocIcon","LinkFilename","KMSeriesName","KMOccurrenceNumber","KMOpenActionCount","KMMeetingDate" `
+        -Query "<Where><Gt><FieldRef Name='KMOpenActionCount' /><Value Type='Number'>0</Value></Gt></Where><OrderBy><FieldRef Name='KMOpenActionCount' Ascending='FALSE' /></OrderBy>" `
+        -ErrorAction SilentlyContinue | Out-Null
+
+    Add-PnPView -List "meeting-transcripts" -Title "Needs OKR Review" `
+        -Fields "DocIcon","LinkFilename","KMSeriesName","KMObjective","KMConfidenceScore","KMSeriesOKRLocked" `
+        -Query "<Where><And><Eq><FieldRef Name='KMSeriesOKRLocked' /><Value Type='Boolean'>0</Value></Eq><Lt><FieldRef Name='KMConfidenceScore' /><Value Type='Number'>0.75</Value></Lt></And></Where>" `
+        -ErrorAction SilentlyContinue | Out-Null
+
+    Add-PnPView -List "meeting-transcripts" -Title "One-Offs" `
+        -Fields "DocIcon","LinkFilename","KMMeetingDate","KMObjective","KMConfidenceScore" `
+        -Query "<Where><Eq><FieldRef Name='KMIsRecurring' /><Value Type='Boolean'>0</Value></Eq></Where><OrderBy><FieldRef Name='KMMeetingDate' Ascending='FALSE' /></OrderBy>" `
+        -ErrorAction SilentlyContinue | Out-Null
+
+    Write-Host "  Series views created." -ForegroundColor Gray
+} catch {
+    Write-Host "  Some views could not be created (non-fatal): $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
+Write-Host "  Meeting series structure ready." -ForegroundColor Green
 
 # ── 4. Versioning Settings ────────────────────────────────────────────────────
 
@@ -249,6 +322,39 @@ if (-not $metricslist) {
     Add-PnPField -List "KM-Metrics-Daily" -DisplayName "By Objective JSON" -InternalName "ByObjectiveJson" -Type Note     -AddToDefaultView $false
     Add-PnPField -List "KM-Metrics-Daily" -DisplayName "By Source JSON"    -InternalName "BySourceJson"    -Type Note     -AddToDefaultView $false
     Write-Host "  Created: KM Metrics Daily" -ForegroundColor Gray
+}
+
+# KM-Meeting-Series (registry of recurring meetings — see meetings/meeting-series-model.md)
+$seriesList = Get-PnPList -Identity "KM-Meeting-Series" -ErrorAction SilentlyContinue
+if (-not $seriesList) {
+    New-PnPList -Title "KM Meeting Series" -Url "KM-Meeting-Series" -Template GenericList
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Series ID"          -InternalName "SeriesId"         -Type Text     -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Series Name"        -InternalName "SeriesName"       -Type Text     -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Series Slug"        -InternalName "SeriesSlug"       -Type Text     -AddToDefaultView $false
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Organizer"          -InternalName "Organizer"        -Type User     -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Cadence"            -InternalName "Cadence"          -Type Choice   -AddToDefaultView $true  -Choices @("Daily","Weekly","Biweekly","Monthly","Quarterly","Ad-hoc")
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Folder URL"         -InternalName "FolderUrl"        -Type URL      -AddToDefaultView $false
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Overview URL"       -InternalName "OverviewUrl"      -Type URL      -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Locked Objective"   -InternalName "LockedObjective"  -Type Choice   -AddToDefaultView $true  -Choices @("Increase Revenue","Improve Operational Efficiency","Accelerate Product Innovation","Improve Customer Success")
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Locked Key Result"  -InternalName "LockedKeyResult"  -Type Text     -AddToDefaultView $false
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "OKR Locked"         -InternalName "OKRLocked"        -Type Boolean  -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Occurrence Count"   -InternalName "OccurrenceCount"  -Type Number   -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "First Seen"         -InternalName "FirstSeen"        -Type DateTime -AddToDefaultView $false
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Last Seen"          -InternalName "LastSeen"         -Type DateTime -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Open Action Count"  -InternalName "OpenActionCount"  -Type Number   -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Stale Action Count" -InternalName "StaleActionCount" -Type Number   -AddToDefaultView $true
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Series State JSON"  -InternalName "SeriesStateJson"  -Type Note     -AddToDefaultView $false
+    Add-PnPField -List "KM-Meeting-Series" -DisplayName "Is Active"          -InternalName "IsActive"         -Type Boolean  -AddToDefaultView $true
+
+    # Index SeriesId — flows look up series by this on every meeting
+    try {
+        $sf = Get-PnPField -List "KM-Meeting-Series" -Identity "SeriesId" -ErrorAction Stop
+        $sf.Indexed = $true
+        $sf.Update()
+        Invoke-PnPQuery
+    } catch { }
+
+    Write-Host "  Created: KM Meeting Series" -ForegroundColor Gray
 }
 
 Write-Host "  Tracking lists created." -ForegroundColor Green

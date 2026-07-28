@@ -44,20 +44,214 @@ Every weekday morning at 8:00 AM, this agent sends me a proactive message in Mic
 
 ---
 
-### AGENT 2 — Meeting Intelligence (Auto-Summarize Teams Meetings)
+### AGENT 2 — Meeting Intelligence (Auto-Summarize Teams Meetings, Series-Aware)
 
 **What it does:**
-After every Teams meeting ends (recurring or one-off), automatically:
-1. Capture the meeting transcript (Teams auto-generates .vtt transcript files)
-2. Send transcript to AI → generate structured summary:
-   - Meeting title, date, attendees
-   - Key decisions made
-   - Action items with owner names
-   - Topics discussed mapped to company OKRs (see OKR list below)
-   - Confidence score (0–1) that the mapping is correct
-3. Save the summary as a SharePoint page or document in the Meeting Transcripts library at: `https://octaveint.sharepoint.com/sites/DaniandEthan/meeting-transcripts`
-4. Tag the document with metadata: Objective, KeyResult, MeetingDate, Attendees, ContentType = "Meeting Transcript"
-5. If confidence < 0.75, post a Teams message to the meeting organizer asking them to confirm the OKR mapping
+After every Teams meeting ends, automatically capture the transcript, summarize it, and file it. The critical requirement: **recurring meetings must all land in the same place and build on each other** — a weekly standup that runs a year should produce one coherent, browsable thread, not 52 loose files.
+
+#### 2.1 — Detect whether the meeting is recurring
+
+Resolve a stable `SeriesId` using this priority ladder (first match wins):
+
+| Priority | Signal | Where to get it |
+|---|---|---|
+| 1 | `seriesMasterId` | Microsoft Graph `GET /me/events/{id}` — all occurrences of a recurring series share this GUID |
+| 2 | `onlineMeeting.joinWebUrl` | Graph `/me/onlineMeetings` — stable across occurrences, survives subject renames |
+| 3 | `iCalUId` root | Graph event |
+| 4 | `slug(normalizedSubject) + "--" + slug(organizerEmail)` | Computed fallback when no calendar event can be matched |
+
+**Subject normalization for priority 4** — strip everything that varies between occurrences, then slugify:
+```
+"Weekly Revenue Standup - Jul 28 (Occurrence 31) [EXTERNAL]"  →  "weekly-revenue-standup"
+```
+Removal order: bracketed tags → dates in any format → occurrence markers (`Occurrence N`, `#N`, `Week N`) → cadence words (`Weekly`, `Monthly`, …) *only if other words remain* → Teams noise (`Meeting with`, `- Copy`) → collapse and hyphenate.
+**Guardrail:** if the result is under 3 characters, use the raw subject slug instead. Never let `"weekly"` alone become a SeriesId — that would merge unrelated meetings.
+
+**Treat as recurring if any of these is true:** the Graph event has `recurrence != null` or type `occurrence`/`exception`/`seriesMaster`; OR a transcript already exists with the same resolved SeriesId; OR two meetings with the same normalized subject + organizer occurred more than 4 days apart (this catches meetings that recur in practice but were booked as separate one-offs).
+
+#### 2.2 — File it in the right place
+
+All under `https://octaveint.sharepoint.com/sites/DaniandEthan/meeting-transcripts`:
+
+```
+meeting-transcripts/
+├── _Series/
+│   └── weekly-revenue-standup/
+│       ├── 00_SERIES-OVERVIEW.md      ← living doc, rewritten every occurrence
+│       ├── 00_series-state.json       ← machine state: open actions, OKR lock, counters
+│       ├── 2026/
+│       │   ├── 2026-07-28_INC_OCC-031_weekly-revenue-standup.md
+│       │   └── 2026-07-21_INC_OCC-030_weekly-revenue-standup.md
+│       └── _raw/                      ← original .vtt files
+└── _OneOff/
+    └── 2026/2026-Q3/
+        └── 2026-07-14_INC_acme-pricing-negotiation.md
+```
+
+Naming: `{YYYY-MM-DD}_{OBJ}_OCC-{NNN}_{series-slug}.md` for recurring, `{YYYY-MM-DD}_{OBJ}_{slug}.md` for one-offs. `{OBJ}` is a 3-letter objective code: `INC`, `OPS`, `INN`, `CUS`, or `UNC`.
+
+Year subfolders keep each folder browsable; `00_` prefix sorts the overview to the top; `_raw/` keeps .vtt evidence out of the reading path.
+
+#### 2.3 — Carry state forward between occurrences (the important part)
+
+Before classifying a new occurrence, **read `00_series-state.json` from the series folder** and pass its contents into the AI call. After classifying, **write it back**. This is what makes the series coherent instead of 52 disconnected summaries.
+
+State file contents:
+```json
+{
+  "series_id": "AAMkAGI2NDk...",
+  "series_slug": "weekly-revenue-standup",
+  "series_name": "Weekly Revenue Standup",
+  "cadence": "Weekly",
+  "occurrence_count": 31,
+  "okr": {
+    "objective": "Increase Revenue",
+    "key_result": "Achieve $5M ARR",
+    "locked": true,
+    "locked_at_occurrence": 3,
+    "consistent_classifications": 29
+  },
+  "open_actions": [
+    { "id": "a-028-01", "action": "Finalize Q3 pricebook tiers", "owner": "Ethan M.",
+      "opened_occurrence": 28, "occurrences_open": 3, "stale": true }
+  ],
+  "closed_actions": [
+    { "id": "a-026-02", "action": "Draft SKU consolidation plan", "owner": "Ethan M.",
+      "opened_occurrence": 26, "closed_occurrence": 30 }
+  ],
+  "decision_ledger": [
+    { "occurrence": 31, "date": "2026-07-28", "decision": "Hold enterprise discount at 15% through Q3" }
+  ],
+  "theme_counts": { "pricing": 28, "enterprise deals": 22 },
+  "regular_attendees": ["daniela.rivas.fernandez-feo@octave.com"]
+}
+```
+
+**OKR Lock rule:** once 3 consecutive occurrences classify to the same Objective, lock it. Later occurrences inherit the locked Objective and get confidence `max(ai_confidence, 0.92)`. The AI still reports what it *would* have chosen; if it disagrees with the lock 3 times in a row, break the lock and post a Teams card asking a human to re-map the series. This prevents a weekly meeting from drifting between objectives based on whatever happened to come up that week — the single biggest source of noise in recurring-meeting classification.
+
+**Action reconciliation:** every occurrence, the AI must return a verdict for every currently-open action — `completed`, `in_progress`, `not_mentioned`, `superseded`, or `reassigned`. An action open ≥3 occurrences is flagged stale and surfaces at the top of the overview. An action not mentioned for 6 consecutive occurrences is auto-archived as `abandoned`, so the open list stays honest.
+
+#### 2.4 — Rewrite the living overview
+
+After each occurrence, regenerate `00_SERIES-OVERVIEW.md` in full. It must contain, in this order: series metadata table (ID, cadence, organizer, occurrence count, locked OKR, regular attendees) → **Open Action Items** table with staleness flags → Recently Closed → **Decision Ledger** (most recent first) → Recurring Themes with mention counts → Occurrence Index (date, number, one-line summary, link).
+
+This is the page someone opens to catch up on a series they've missed. It must be readable standalone.
+
+#### 2.5 — Post a series-delta digest to Teams
+
+For a meeting you attend weekly, the summary is not the useful part — the delta is. Post:
+```
+📊 Weekly Revenue Standup — Occurrence 31
+Series: 31 meetings since Jan 6 · OKR: Increase Revenue (locked)
+
+What changed since last week:
+Discount policy resolved; SKU consolidation now in execution.
+
+✅ Closed: Draft SKU consolidation plan (Ethan)
+🆕 New: Send Acme revised quote (Daniela, due Aug 1)
+⚠️ Stale (3 weeks open): Finalize Q3 pricebook tiers (Ethan)
+
+📄 This occurrence  ·  📚 Full series overview
+```
+
+#### 2.6 — Series-aware metadata columns
+
+On the `meeting-transcripts` library, in addition to the base columns:
+
+| Column | Internal name | Type |
+|---|---|---|
+| Series ID | `KMSeriesId` | Text (**indexed** — this is the join column for all series views) |
+| Series Name | `KMSeriesName` | Text |
+| Series Slug | `KMSeriesSlug` | Text |
+| Is Recurring | `KMIsRecurring` | Yes/No |
+| Occurrence Number | `KMOccurrenceNumber` | Number |
+| Cadence | `KMCadence` | Choice (Daily/Weekly/Biweekly/Monthly/Quarterly/Ad-hoc) |
+| Series OKR Locked | `KMSeriesOKRLocked` | Yes/No |
+| Previous Occurrence | `KMPreviousOccurrenceUrl` | Hyperlink |
+| Open Action Count | `KMOpenActionCount` | Number |
+| Attendee Count | `KMAttendeeCount` | Number |
+
+**Library views to create:**
+- **By Series** — group by `KMSeriesName`, sort `KMOccurrenceNumber` descending → "show me this meeting's whole history"
+- **Latest per Series** — max occurrence per series → "current state of every recurring meeting"
+- **Stale Actions** — `KMOpenActionCount` > 0 → "where are things stuck"
+- **Needs OKR Review** — not locked AND confidence < 0.75
+- **One-Offs This Quarter** — `KMIsRecurring` = No
+
+#### 2.7 — Series registry list
+
+Create a SharePoint list `KM-Meeting-Series`, one row per recurring series, so "which recurring meetings do we even have?" is one click. Columns: `SeriesId` (indexed, unique), `SeriesName`, `SeriesSlug`, `Organizer` (Person), `Cadence`, `FolderUrl`, `OverviewUrl`, `LockedObjective`, `LockedKeyResult`, `OKRLocked`, `OccurrenceCount`, `FirstSeen`, `LastSeen`, `OpenActionCount`, `StaleActionCount`, `SeriesStateJson` (Note — mirror of state.json for flows that can't read files), `IsActive`.
+
+#### 2.8 — Copilot Studio / Power Automate setup
+
+- Agent name: `KM Meeting Intelligence`
+- Connectors: Microsoft Teams, SharePoint, Microsoft Graph (meeting metadata + transcripts), Office 365 Outlook (calendar, for recurrence detection), HTTP (Claude API)
+- Trigger: Power Automate — "When a file is created in SharePoint library `/Recordings`" (Teams saves transcripts here), OR Graph subscription on `/me/onlineMeetings/{id}/transcripts`
+- Flow order: get transcript → resolve SeriesId → look up `KM-Meeting-Series` → read `state.json` (or `SeriesStateJson`) → call AI with prior context → reconcile actions → write occurrence file → rewrite overview → write state back → update registry → post Teams digest
+
+**Series-aware AI prompt to use:**
+```
+You are an enterprise meeting intelligence engine for Octave.
+
+You are processing occurrence {{occurrence_number}} of a recurring meeting series.
+Summarize this occurrence AND reconcile it against the series history.
+
+=== SERIES CONTEXT ===
+Series name:        {{series_name}}
+Cadence:            {{cadence}}
+Occurrence number:  {{occurrence_number}}
+Locked OKR:         {{locked_objective}} → {{locked_key_result}} (locked: {{okr_locked}})
+
+Previous occurrence summary:
+{{previous_summary}}
+
+Currently open action items (you MUST return a verdict for every one):
+{{open_actions_json}}
+
+Established recurring themes:
+{{theme_counts_json}}
+
+=== THIS OCCURRENCE ===
+Date:      {{meeting_date}}
+Attendees: {{attendees}}
+Transcript:
+{{transcript_text}}
+
+=== OUTPUT (strict JSON only, no prose, no markdown fences) ===
+{
+  "summary": "2-4 sentences on what happened THIS occurrence. Do not re-summarize the series.",
+  "whats_changed": "1-2 sentences: what is different from last occurrence. Empty string if occurrence 1.",
+  "decisions": [{ "decision": "...", "rationale": "...", "owner": "name or null" }],
+  "new_action_items": [{ "action": "...", "owner": "name", "due": "YYYY-MM-DD or null" }],
+  "action_updates": [
+    { "id": "id from open_actions_json",
+      "verdict": "completed | in_progress | not_mentioned | superseded | reassigned",
+      "evidence": "short quote or paraphrase supporting the verdict",
+      "new_owner": "only if reassigned",
+      "superseded_by": "only if superseded" }
+  ],
+  "themes": ["theme1", "theme2"],
+  "objective": "one of the four allowed objectives",
+  "key_result": "most relevant key result",
+  "confidence": 0.0,
+  "agrees_with_lock": true,
+  "reasoning": "why this objective; if it disagrees with the locked OKR, say so explicitly"
+}
+
+RULES
+- Return a verdict for EVERY id in open_actions_json. Omitting one is an error.
+- If an action is not discussed at all, verdict is "not_mentioned" — do not guess "in_progress".
+- "decisions" means things actually settled. Discussion without resolution is not a decision.
+- Attribute owners by name only when the transcript makes it clear. Otherwise null.
+- If the OKR is locked and you agree, return the locked values and set agrees_with_lock true.
+- If the OKR is locked and you genuinely disagree, return YOUR choice and set agrees_with_lock false.
+- Prefer precision over completeness. Lower confidence when the transcript is fragmentary.
+
+Allowed objectives: Increase Revenue, Improve Operational Efficiency,
+Accelerate Product Innovation, Improve Customer Success
+```
+
+For the **first occurrence** of a new series, pass `previous_summary = "(none — first occurrence)"`, `open_actions_json = []`, `okr_locked = false`.
 
 **Company OKRs to map to (use exactly these values):**
 - Objective: "Increase Revenue" → Key Results: Achieve $5M ARR, Close 20 enterprise deals, Launch 3 new SKUs
@@ -184,11 +378,31 @@ All at site: `https://octaveint.sharepoint.com/sites/DaniandEthan`
 - `MeetingDate` — Date and Time (for transcripts)
 - `EmailSentDate` — Date and Time (for email attachments)
 
+**Series-specific columns for `meeting-transcripts` only** — see section 2.6 above (`KMSeriesId` indexed, `KMSeriesName`, `KMSeriesSlug`, `KMIsRecurring`, `KMOccurrenceNumber`, `KMCadence`, `KMSeriesOKRLocked`, `KMPreviousOccurrenceUrl`, `KMOpenActionCount`, `KMAttendeeCount`)
+
+**Folder structure to pre-create inside `meeting-transcripts`:**
+- `_Series/` — one subfolder per recurring meeting, created automatically by the flow
+- `_OneOff/` — year → quarter subfolders for non-recurring meetings
+
 **Tracking lists to create:**
 - `KM-Classification-Log` — columns: RunId, Source, OriginalName, AIObjective, FinalObjective, ConfidenceScore, WasOverridden, ProcessedDate, SPFileUrl
 - `KM-Correction-Log` — columns: FileId, OriginalObjective, CorrectedObjective, CorrectedBy, CorrectionDate, Reason
 - `KM-Prompt-Config` — columns: PromptVersion, SystemPrompt, IsActive, EffectiveDate
 - `KM-Metrics-Daily` — columns: Date, FilesProcessed, AutoClassified, HumanReviewed, AvgConfidence
+- `KM-Meeting-Series` — the recurring-meeting registry, see section 2.7 above
+
+---
+
+### RETRIEVAL — how information comes back out
+
+This is the payoff for all the structure above. Four access paths, most-used first:
+
+1. **Series overview page** — open `_Series/{slug}/00_SERIES-OVERVIEW.md` and you're caught up on a whole series in one read
+2. **"By Series" library view** — grouped and collapsible, browse without knowing folder paths
+3. **SharePoint search with metadata refiners** — search `pricebook`, refine by Series Name and Objective
+4. **Ask My Assistant in Teams** — "what did we decide about enterprise discounts in the revenue standup?" The assistant filters `meeting-transcripts` by `KMSeriesName`, reads the decision ledger out of `00_series-state.json`, and answers with a citation link
+
+Path 4 is why the decision ledger is stored as machine-readable JSON: the assistant answers from a ledger instead of re-reading 31 transcripts. **Please include the setup for this retrieval capability in Agent 1 (My Assistant)** — add SharePoint as a knowledge source scoped to the `meeting-transcripts` library, and give the agent a topic that handles "what did we decide/discuss about X" by querying series state.
 
 ---
 
@@ -201,11 +415,14 @@ All at site: `https://octaveint.sharepoint.com/sites/DaniandEthan`
 5. The Claude API key is stored as an environment variable in Power Platform — each person can use the same shared org key or their own personal key
 
 Please give me exact step-by-step instructions for all of the above, starting with:
-1. How to create the SharePoint libraries and columns (manual steps in SharePoint UI if PnP PowerShell is not available)
-2. How to build Agent 1 (My Assistant) in Copilot Studio
-3. How to build the Power Automate flow for Agent 3 (Email Triage) at make.powerautomate.com
-4. How to connect the Claude HTTP action with an environment variable for the API key
-5. How to publish My Assistant to Teams so it appears as a chat
-6. How to export the solution and share with teammates
+1. How to create the SharePoint libraries and columns (manual steps in SharePoint UI if PnP PowerShell is not available), including the indexed `KMSeriesId` column and the `_Series` / `_OneOff` folders
+2. How to build Agent 1 (My Assistant) in Copilot Studio, including the SharePoint knowledge source for series retrieval
+3. How to build the Power Automate flow for Agent 2 (Meeting Intelligence) — **especially the series detection, reading and writing `00_series-state.json`, and the OKR lock logic**, since that's the part that makes recurring meetings coherent
+4. How to build the Power Automate flow for Agent 3 (Email Triage) at make.powerautomate.com
+5. How to connect the Claude HTTP action with an environment variable for the API key
+6. How to publish My Assistant to Teams so it appears as a chat
+7. How to export the solution and share with teammates
+
+For step 3, be concrete about the SharePoint connector actions needed to read a JSON file from a folder, parse it, mutate it, and write it back — that round-trip is the piece I most need to get right.
 
 ---

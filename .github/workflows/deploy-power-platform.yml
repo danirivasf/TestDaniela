@@ -1,0 +1,106 @@
+name: Deploy Power Platform Solution
+
+# Imports the KM solution (Power Automate flows + Copilot Studio agents) into a
+# target Power Platform environment. This is how a teammate installs everything.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment_url:
+        description: 'Target Power Platform environment URL (e.g. https://octaveint.crm4.dynamics.com)'
+        required: true
+      solution_name:
+        description: 'Solution name'
+        required: true
+        default: 'KMKnowledgeAutomation'
+      managed:
+        description: 'Import as managed (recommended for anyone who is not the author)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Power Platform CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Verify connection
+        uses: microsoft/powerplatform-actions/who-am-i@v1
+        with:
+          environment-url: ${{ inputs.environment_url }}
+          app-id: ${{ secrets.PP_APP_ID }}
+          client-secret: ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.PP_TENANT_ID }}
+
+      - name: Pack solution from source
+        uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-folder: power-platform/solution-source/${{ inputs.solution_name }}
+          solution-file: out/${{ inputs.solution_name }}.zip
+          solution-type: ${{ inputs.managed && 'Managed' || 'Unmanaged' }}
+
+      - name: Import solution
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url: ${{ inputs.environment_url }}
+          app-id: ${{ secrets.PP_APP_ID }}
+          client-secret: ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.PP_TENANT_ID }}
+          solution-file: out/${{ inputs.solution_name }}.zip
+          force-overwrite: true
+          publish-changes: true
+          # Maps connection references and environment variables per environment,
+          # so each teammate's own Outlook/Teams/SharePoint connections get bound.
+          use-deployment-settings-file: true
+          deployment-settings-file: power-platform/deployment-settings.json
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Power Platform import" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: \`${{ inputs.environment_url }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Solution: \`${{ inputs.solution_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Managed: \`${{ inputs.managed }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Result: \`${{ job.status }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Next: turn on the flows and confirm connection references in make.powerautomate.com." >> $GITHUB_STEP_SUMMARY
+
+  export-back:
+    # Run this after building/editing flows in the UI, to commit changes back to git.
+    if: false  # flip to true, or trigger manually, once the solution exists
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Export solution
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ inputs.environment_url }}
+          app-id: ${{ secrets.PP_APP_ID }}
+          client-secret: ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.PP_TENANT_ID }}
+          solution-name: ${{ inputs.solution_name }}
+          solution-output-file: out/${{ inputs.solution_name }}.zip
+          managed: false
+
+      - name: Unpack to source
+        uses: microsoft/powerplatform-actions/unpack-solution@v1
+        with:
+          solution-file: out/${{ inputs.solution_name }}.zip
+          solution-folder: power-platform/solution-source/${{ inputs.solution_name }}
+          solution-type: Unmanaged
+          overwrite-files: true
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add power-platform/solution-source
+          git diff --staged --quiet || git commit -m "Sync Power Platform solution from ${{ inputs.environment_url }}"
+          git push

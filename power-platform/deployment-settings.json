@@ -1,0 +1,76 @@
+{
+  "_comment": "Per-environment bindings for the KM solution. Each teammate fills in their own connection IDs and values, so the same solution works in any environment. Generate a populated version with: pac solution create-settings --solution-zip out/KMKnowledgeAutomation.zip --settings-file power-platform/deployment-settings.json",
+
+  "EnvironmentVariables": [
+    {
+      "SchemaName": "km_AnthropicApiKey",
+      "Value": "",
+      "_note": "Leave EMPTY in git. Set the value in the Power Platform environment after import, or inject it at deploy time. Never commit an API key."
+    },
+    {
+      "SchemaName": "km_SiteUrl",
+      "Value": "https://octaveint.sharepoint.com/sites/DaniandEthan"
+    },
+    {
+      "SchemaName": "km_MeetingTranscriptsLibrary",
+      "Value": "meeting-transcripts"
+    },
+    {
+      "SchemaName": "km_AiInboxLibrary",
+      "Value": "ai-inbox"
+    },
+    {
+      "SchemaName": "km_ReviewChannelId",
+      "Value": "",
+      "_note": "Teams channel ID for the low-confidence review queue"
+    },
+    {
+      "SchemaName": "km_ConfidenceThreshold",
+      "Value": "0.75"
+    },
+    {
+      "SchemaName": "km_SeriesLockOccurrences",
+      "Value": "3",
+      "_note": "Consecutive consistent classifications before a series OKR locks"
+    },
+    {
+      "SchemaName": "km_StaleActionThreshold",
+      "Value": "3",
+      "_note": "Occurrences an action stays open before it is flagged stale"
+    },
+    {
+      "SchemaName": "km_BriefingTime",
+      "Value": "08:00",
+      "_note": "Local time My Assistant sends the daily brief"
+    }
+  ],
+
+  "ConnectionReferences": [
+    {
+      "LogicalName": "km_sharedoffice365_km",
+      "ConnectionId": "",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+      "_note": "Outlook — each person authorizes their own"
+    },
+    {
+      "LogicalName": "km_sharedsharepointonline_km",
+      "ConnectionId": "",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+    },
+    {
+      "LogicalName": "km_sharedteams_km",
+      "ConnectionId": "",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+    },
+    {
+      "LogicalName": "km_sharedexcelonlinebusiness_km",
+      "ConnectionId": "",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness"
+    },
+    {
+      "LogicalName": "km_sharedonedriveforbusiness_km",
+      "ConnectionId": "",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+name: Deploy SharePoint Structure
+
+# Provisions libraries, metadata columns, series folders and tracking lists
+# onto a target SharePoint site. Safe to re-run — every step is idempotent.
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: 'Target SharePoint site URL'
+        required: true
+        default: 'https://octaveint.sharepoint.com/sites/DaniandEthan'
+      dry_run:
+        description: 'Validate the script without touching SharePoint'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PnP PowerShell
+        shell: pwsh
+        run: |
+          Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
+          Import-Module PnP.PowerShell -Force
+          Write-Host "PnP PowerShell $((Get-Module PnP.PowerShell).Version) loaded"
+
+      - name: Validate provisioning script syntax
+        shell: pwsh
+        run: |
+          $path = 'm365-knowledge-architecture/provisioning/Provision-KMSite.ps1'
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$errors) | Out-Null
+          if ($errors) {
+            $errors | ForEach-Object { Write-Host "::error::$($_.Message)" }
+            exit 1
+          }
+          Write-Host "Script parses cleanly."
+
+      - name: Provision site
+        if: ${{ inputs.dry_run == false }}
+        shell: pwsh
+        env:
+          SP_CLIENT_ID:   ${{ secrets.SP_CLIENT_ID }}
+          SP_TENANT:      ${{ secrets.SP_TENANT }}
+          SP_CERT_BASE64: ${{ secrets.SP_CERT_BASE64 }}
+          SP_CERT_PASSWORD: ${{ secrets.SP_CERT_PASSWORD }}
+        run: |
+          Import-Module PnP.PowerShell -Force
+
+          if (-not $env:SP_CLIENT_ID) {
+            Write-Host "::error::SP_CLIENT_ID is not set. See DEPLOY.md for how to create the app registration and secrets."
+            exit 1
+          }
+
+          $securePwd = if ($env:SP_CERT_PASSWORD) {
+            ConvertTo-SecureString $env:SP_CERT_PASSWORD -AsPlainText -Force
+          } else { $null }
+
+          # Certificate auth — required for app-only access to Graph-backed cmdlets.
+          # Client-secret auth uses legacy ACS and cannot reach Teams/Planner/Groups.
+          $connectArgs = @{
+            Url                       = '${{ inputs.site_url }}'
+            ClientId                  = $env:SP_CLIENT_ID
+            Tenant                    = $env:SP_TENANT
+            CertificateBase64Encoded  = $env:SP_CERT_BASE64
+          }
+          if ($securePwd) { $connectArgs['CertificatePassword'] = $securePwd }
+
+          Connect-PnPOnline @connectArgs
+          Write-Host "Connected to ${{ inputs.site_url }}"
+
+          # The script opens its own connection; ours proves credentials work first.
+          & ./m365-knowledge-architecture/provisioning/Provision-KMSite.ps1 `
+              -SiteUrl '${{ inputs.site_url }}'
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### SharePoint provisioning" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Site: \`${{ inputs.site_url }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry run: \`${{ inputs.dry_run }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Result: \`${{ job.status }}\`" >> $GITHUB_STEP_SUMMARY
