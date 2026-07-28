@@ -1,0 +1,214 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://octaveint.sharepoint.com/schemas/km-document-metadata/v1.0.0",
+  "title": "KM Document Metadata",
+  "description": "API-ready metadata schema for the M365 Knowledge Automation system. Used by the AI classification pipeline, Power Automate flows, and SPO REST API.",
+  "type": "object",
+  "required": [
+    "objective",
+    "keyResult",
+    "contentTypeLabel",
+    "confidenceScore",
+    "source",
+    "owner",
+    "classifiedDate"
+  ],
+  "properties": {
+    "objective": {
+      "type": "string",
+      "description": "Top-level OKR Objective term (must match a term in the OKR/Objectives term set)",
+      "examples": ["Increase Revenue", "Improve Operational Efficiency", "Accelerate Product Innovation"]
+    },
+    "keyResult": {
+      "type": "array",
+      "description": "One or more Key Results under the Objective",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "examples": [
+        ["Achieve $5M ARR by Q4"],
+        ["Reduce quote cycle time by 30%", "Improve win rate to 35%"]
+      ]
+    },
+    "project": {
+      "type": "array",
+      "description": "Project(s) or initiative(s) this document belongs to",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["Pricebook Refresh 2026"], ["ERP Migration", "Pricing Optimization"]]
+    },
+    "contentTypeLabel": {
+      "type": "string",
+      "description": "Semantic content type of the document",
+      "enum": [
+        "Email",
+        "Attachment",
+        "Meeting Transcript",
+        "Spreadsheet",
+        "Presentation",
+        "Report",
+        "Contract",
+        "SOP",
+        "Other"
+      ]
+    },
+    "confidenceScore": {
+      "type": "number",
+      "description": "AI classification confidence score between 0.00 and 1.00. Values below 0.75 trigger human review.",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "examples": [0.92, 0.74, 0.50]
+    },
+    "source": {
+      "type": "string",
+      "description": "System or channel that originated the document",
+      "enum": ["Email", "Teams", "Upload", "Power BI", "SharePoint Sync", "API"]
+    },
+    "owner": {
+      "type": "object",
+      "description": "Business owner responsible for document accuracy",
+      "required": ["email", "displayName"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "UPN / email address of the owner"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the owner"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Azure AD Object ID of the owner",
+          "pattern": "^[0-9a-fA-F-]{36}$"
+        }
+      }
+    },
+    "classifiedDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when AI classification was applied (ISO 8601)"
+    },
+    "reviewedBy": {
+      "type": "object",
+      "description": "Person who reviewed and approved or overrode AI classification",
+      "required": ["email", "displayName"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F-]{36}$"
+        }
+      }
+    },
+    "reviewedDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp of human review (ISO 8601)"
+    },
+    "overrideReason": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Required when a reviewer changes AI-assigned Objective or KeyResult. Explains the justification."
+    },
+    "retentionLabel": {
+      "type": "string",
+      "description": "M365 compliance retention label",
+      "enum": ["Transient-30d", "Standard-3yr", "Financial-7yr", "Legal-Hold", "Permanent"]
+    },
+    "sensitivityLabel": {
+      "type": "string",
+      "description": "Purview sensitivity label",
+      "enum": ["Public", "Internal", "Confidential", "Highly Confidential"]
+    },
+    "meetingDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the meeting took place (required when contentTypeLabel = 'Meeting Transcript')"
+    },
+    "emailSentDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Original sent date of the email (required when contentTypeLabel = 'Email', ISO 8601 UTC)"
+    },
+    "sourceFileUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Original URL of the source document (e.g. Teams recording URL, email message ID URL)"
+    },
+    "classificationVersion": {
+      "type": "string",
+      "description": "Version of the AI classification model used",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0", "2.3.1"]
+    },
+    "keywords": {
+      "type": "array",
+      "description": "Top keywords extracted by the AI classifier",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "contentTypeLabel": { "const": "Meeting Transcript" } },
+        "required": ["contentTypeLabel"]
+      },
+      "then": {
+        "required": ["meetingDate"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "contentTypeLabel": { "const": "Email" } },
+        "required": ["contentTypeLabel"]
+      },
+      "then": {
+        "required": ["emailSentDate"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reviewedBy": { "type": "object" }
+        },
+        "required": ["reviewedBy"]
+      },
+      "then": {
+        "required": ["reviewedDate"]
+      }
+    }
+  ],
+  "examples": [
+    {
+      "objective": "Increase Revenue",
+      "keyResult": ["Achieve $5M ARR by Q4", "Improve win rate to 35%"],
+      "project": ["Pricebook Refresh 2026"],
+      "contentTypeLabel": "Spreadsheet",
+      "confidenceScore": 0.94,
+      "source": "Upload",
+      "owner": {
+        "email": "jane.doe@contoso.com",
+        "displayName": "Jane Doe",
+        "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      },
+      "classifiedDate": "2026-07-10T14:23:00Z",
+      "retentionLabel": "Financial-7yr",
+      "sensitivityLabel": "Confidential",
+      "classificationVersion": "2.1.0",
+      "keywords": ["pricebook", "SKU", "pricing tier", "2026", "margin"]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+name: Deploy SharePoint Structure
+
+# Provisions libraries, metadata columns, series folders and tracking lists
+# onto a target SharePoint site. Safe to re-run — every step is idempotent.
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: 'Target SharePoint site URL'
+        required: true
+        default: 'https://octaveint.sharepoint.com/sites/DaniandEthan'
+      dry_run:
+        description: 'Validate the script without touching SharePoint'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PnP PowerShell
+        shell: pwsh
+        run: |
+          Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
+          Import-Module PnP.PowerShell -Force
+          Write-Host "PnP PowerShell $((Get-Module PnP.PowerShell).Version) loaded"
+
+      - name: Check scripts are ASCII-only
+        shell: bash
+        run: |
+          # Windows PowerShell 5.1 reads .ps1 as ANSI unless there is a UTF-8 BOM.
+          # A UTF-8 box-drawing char then decodes to CP1252 as a curly quote,
+          # which PowerShell accepts as a string delimiter -- breaking the parse
+          # far from the actual character. Keep .ps1 files pure ASCII.
+          fail=0
+          while IFS= read -r f; do
+            # A leading UTF-8 BOM is intentional and expected; skip it before
+            # scanning so the BOM's own bytes are not reported as a violation.
+            if [ "$(head -c3 "$f" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
+              body=$(tail -c +4 "$f")
+            else
+              body=$(cat "$f")
+              echo "::warning file=$f::No UTF-8 BOM. Add one so PowerShell 5.1 cannot fall back to ANSI."
+            fi
+            if printf '%s' "$body" | LC_ALL=C grep -qP '[^\x00-\x7F]'; then
+              echo "::error file=$f::Non-ASCII characters found. PowerShell 5.1 may misparse this file."
+              printf '%s' "$body" | LC_ALL=C grep -nP '[^\x00-\x7F]' | head -5
+              fail=1
+            fi
+          done < <(find . -name '*.ps1' -not -path './.git/*')
+          [ "$fail" -eq 0 ] && echo "All .ps1 files are ASCII-only (BOM excluded)."
+          exit $fail
+
+      - name: Validate provisioning script syntax
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+            if ($errors) {
+              $errors | ForEach-Object { Write-Host "::error::$($_.Message)" }
+              $failed = $true
+            } else {
+              Write-Host "OK  $($_.Name)"
+            }
+          }
+          if ($failed) { exit 1 }
+
+      - name: Provision site
+        if: ${{ inputs.dry_run == false }}
+        shell: pwsh
+        env:
+          SP_CLIENT_ID:   ${{ secrets.SP_CLIENT_ID }}
+          SP_TENANT:      ${{ secrets.SP_TENANT }}
+          SP_CERT_BASE64: ${{ secrets.SP_CERT_BASE64 }}
+          SP_CERT_PASSWORD: ${{ secrets.SP_CERT_PASSWORD }}
+        run: |
+          Import-Module PnP.PowerShell -Force
+
+          if (-not $env:SP_CLIENT_ID) {
+            Write-Host "::error::SP_CLIENT_ID is not set. See DEPLOY.md for how to create the app registration and secrets."
+            exit 1
+          }
+
+          $securePwd = if ($env:SP_CERT_PASSWORD) {
+            ConvertTo-SecureString $env:SP_CERT_PASSWORD -AsPlainText -Force
+          } else { $null }
+
+          # Certificate auth — required for app-only access to Graph-backed cmdlets.
+          # Client-secret auth uses legacy ACS and cannot reach Teams/Planner/Groups.
+          $connectArgs = @{
+            Url                       = '${{ inputs.site_url }}'
+            ClientId                  = $env:SP_CLIENT_ID
+            Tenant                    = $env:SP_TENANT
+            CertificateBase64Encoded  = $env:SP_CERT_BASE64
+          }
+          if ($securePwd) { $connectArgs['CertificatePassword'] = $securePwd }
+
+          Connect-PnPOnline @connectArgs
+          Write-Host "Connected to ${{ inputs.site_url }}"
+
+          # The script opens its own connection; ours proves credentials work first.
+          & ./m365-knowledge-architecture/provisioning/Provision-KMSite.ps1 `
+              -SiteUrl '${{ inputs.site_url }}'
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### SharePoint provisioning" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Site: \`${{ inputs.site_url }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry run: \`${{ inputs.dry_run }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Result: \`${{ job.status }}\`" >> $GITHUB_STEP_SUMMARY
