@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     One-command bootstrap for KM provisioning. Checks prerequisites, walks you
     through Microsoft 365 login, verifies it, then launches Claude Code with the
@@ -43,7 +43,7 @@ Write-Host "  KM Provisioning Bootstrap" -ForegroundColor White
 Write-Host "  Target: https://octaveint.sharepoint.com/sites/DaniandEthan" -ForegroundColor Gray
 Write-Host ""
 
-# ── 1. Repo location ──────────────────────────────────────────────────────────
+# -- 1. Repo location ----------------------------------------------------------
 
 Write-Step 1 "Checking repository"
 
@@ -70,7 +70,7 @@ if ($branch -and $branch -ne 'claude/m365-knowledge-automation-a7ahvl') {
     Write-Ok "On branch $branch"
 }
 
-# ── 2. Prerequisites ──────────────────────────────────────────────────────────
+# -- 2. Prerequisites ----------------------------------------------------------
 
 Write-Step 2 "Checking prerequisites"
 
@@ -90,7 +90,7 @@ if ($nodeMajor -lt 18) {
 Write-Ok "Node $nodeVersion"
 
 if (-not (Test-Command 'claude')) {
-    Write-Warn2 "Claude Code CLI not found — installing"
+    Write-Warn2 "Claude Code CLI not found - installing"
     npm install -g @anthropic-ai/claude-code
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "Install failed"
@@ -107,7 +107,7 @@ if (-not (Test-Command 'claude')) {
 }
 Write-Ok "Claude Code CLI present"
 
-# ── 3. Microsoft 365 login ────────────────────────────────────────────────────
+# -- 3. Microsoft 365 login ----------------------------------------------------
 
 if (-not $SkipLogin) {
     Write-Step 3 "Microsoft 365 sign-in"
@@ -129,7 +129,7 @@ if (-not $SkipLogin) {
     Write-Step 3 "Skipping sign-in (-SkipLogin)"
 }
 
-# ── 4. Verify ─────────────────────────────────────────────────────────────────
+# -- 4. Verify -----------------------------------------------------------------
 
 Write-Step 4 "Verifying authentication"
 
@@ -176,13 +176,13 @@ if (-not $looksOk) {
     Write-Ok "Authenticated"
 }
 
-# ── 5. Launch ─────────────────────────────────────────────────────────────────
+# -- 5. Launch -----------------------------------------------------------------
 
 Write-Step 5 "Starting Claude Code"
 
 if ($ReadOnly) {
     $env:READ_ONLY = '1'
-    Write-Warn2 "READ_ONLY=1 — inspection only, no writes to SharePoint"
+    Write-Warn2 "READ_ONLY=1 - inspection only, no writes to SharePoint"
 }
 
 Write-Host ""

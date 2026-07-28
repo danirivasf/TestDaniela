@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Provisions all KM document libraries, metadata columns, content types,
     and SharePoint lists on the DaniandEthan site.
@@ -8,7 +8,7 @@
     Register an Entra ID app with Sites.FullControl.All (or use interactive login below)
 
 .USAGE
-    # Interactive login (simplest — works for most M365 users)
+    # Interactive login (simplest - works for most M365 users)
     .\Provision-KMSite.ps1 -SiteUrl "https://octaveint.sharepoint.com/sites/DaniandEthan"
 
     # App-only (CI/CD)
@@ -28,7 +28,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# ── Connect ──────────────────────────────────────────────────────────────────
+# -- Connect ------------------------------------------------------------------
 
 if ($ClientId) {
     Connect-PnPOnline -Url $SiteUrl -ClientId $ClientId -Thumbprint $Thumbprint -Tenant $Tenant
@@ -38,7 +38,7 @@ if ($ClientId) {
 
 Write-Host "Connected to $SiteUrl" -ForegroundColor Green
 
-# ── 1. Site Columns ───────────────────────────────────────────────────────────
+# -- 1. Site Columns -----------------------------------------------------------
 
 Write-Host "`n[1/5] Creating site columns..." -ForegroundColor Cyan
 
@@ -98,7 +98,7 @@ Add-PnPField -DisplayName "Retention Label" -InternalName "KMRetentionLabel" -Ty
     "Transient-30d", "Standard-3yr", "Financial-7yr", "Legal-Hold", "Permanent"
 ) -ErrorAction SilentlyContinue
 
-# ── Meeting series columns (see meetings/meeting-series-model.md) ──────────────
+# -- Meeting series columns (see meetings/meeting-series-model.md) --------------
 
 Add-PnPField -DisplayName "Series ID" -InternalName "KMSeriesId" -Type Text -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
 Add-PnPField -DisplayName "Series Name" -InternalName "KMSeriesName" -Type Text -Group $groupName -AddToDefaultView $false -ErrorAction SilentlyContinue
@@ -115,7 +115,7 @@ Add-PnPField -DisplayName "Attendee Count" -InternalName "KMAttendeeCount" -Type
 
 Write-Host "  Site columns created." -ForegroundColor Green
 
-# ── 2. Document Libraries ─────────────────────────────────────────────────────
+# -- 2. Document Libraries -----------------------------------------------------
 
 Write-Host "`n[2/5] Creating document libraries..." -ForegroundColor Cyan
 
@@ -143,7 +143,7 @@ foreach ($lib in $libraries) {
 
 Write-Host "  Libraries created." -ForegroundColor Green
 
-# ── 3. Add Metadata Columns to Libraries ─────────────────────────────────────
+# -- 3. Add Metadata Columns to Libraries -------------------------------------
 
 Write-Host "`n[3/5] Adding metadata columns to libraries..." -ForegroundColor Cyan
 
@@ -181,11 +181,11 @@ foreach ($col in $emailColumns) {
 
 Write-Host "  Metadata columns added." -ForegroundColor Green
 
-# ── 3b. Meeting Series Structure ──────────────────────────────────────────────
+# -- 3b. Meeting Series Structure ----------------------------------------------
 
 Write-Host "`n[3b] Setting up meeting series structure..." -ForegroundColor Cyan
 
-# Index SeriesId — required for series views to work past the 5,000 item list view threshold
+# Index SeriesId - required for series views to work past the 5,000 item list view threshold
 try {
     $seriesField = Get-PnPField -List "meeting-transcripts" -Identity "KMSeriesId" -ErrorAction Stop
     $seriesField.Indexed = $true
@@ -235,7 +235,7 @@ try {
 
 Write-Host "  Meeting series structure ready." -ForegroundColor Green
 
-# ── 4. Versioning Settings ────────────────────────────────────────────────────
+# -- 4. Versioning Settings ----------------------------------------------------
 
 Write-Host "`n[4/5] Configuring versioning..." -ForegroundColor Cyan
 
@@ -253,7 +253,7 @@ Set-PnPList -Identity "sku-catalog"          -EnableVersioning $true -EnableMino
 
 Write-Host "  Versioning configured." -ForegroundColor Green
 
-# ── 5. Tracking & Correction SharePoint Lists ─────────────────────────────────
+# -- 5. Tracking & Correction SharePoint Lists ---------------------------------
 
 Write-Host "`n[5/5] Creating tracking lists..." -ForegroundColor Cyan
 
@@ -324,7 +324,7 @@ if (-not $metricslist) {
     Write-Host "  Created: KM Metrics Daily" -ForegroundColor Gray
 }
 
-# KM-Meeting-Series (registry of recurring meetings — see meetings/meeting-series-model.md)
+# KM-Meeting-Series (registry of recurring meetings - see meetings/meeting-series-model.md)
 $seriesList = Get-PnPList -Identity "KM-Meeting-Series" -ErrorAction SilentlyContinue
 if (-not $seriesList) {
     New-PnPList -Title "KM Meeting Series" -Url "KM-Meeting-Series" -Template GenericList
@@ -346,7 +346,7 @@ if (-not $seriesList) {
     Add-PnPField -List "KM-Meeting-Series" -DisplayName "Series State JSON"  -InternalName "SeriesStateJson"  -Type Note     -AddToDefaultView $false
     Add-PnPField -List "KM-Meeting-Series" -DisplayName "Is Active"          -InternalName "IsActive"         -Type Boolean  -AddToDefaultView $true
 
-    # Index SeriesId — flows look up series by this on every meeting
+    # Index SeriesId - flows look up series by this on every meeting
     try {
         $sf = Get-PnPField -List "KM-Meeting-Series" -Identity "SeriesId" -ErrorAction Stop
         $sf.Indexed = $true
@@ -359,9 +359,9 @@ if (-not $seriesList) {
 
 Write-Host "  Tracking lists created." -ForegroundColor Green
 
-# ── Done ──────────────────────────────────────────────────────────────────────
+# -- Done ----------------------------------------------------------------------
 
-Write-Host "`n✅ Provisioning complete!" -ForegroundColor Green
+Write-Host "`n[OK] Provisioning complete!" -ForegroundColor Green
 Write-Host "Site: $SiteUrl" -ForegroundColor White
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow

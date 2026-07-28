@@ -29,17 +29,39 @@ jobs:
           Import-Module PnP.PowerShell -Force
           Write-Host "PnP PowerShell $((Get-Module PnP.PowerShell).Version) loaded"
 
+      - name: Check scripts are ASCII-only
+        shell: bash
+        run: |
+          # Windows PowerShell 5.1 reads .ps1 as ANSI unless there is a UTF-8 BOM.
+          # A UTF-8 box-drawing char then decodes to CP1252 as a curly quote,
+          # which PowerShell accepts as a string delimiter -- breaking the parse
+          # far from the actual character. Keep .ps1 files pure ASCII.
+          fail=0
+          while IFS= read -r f; do
+            if LC_ALL=C grep -qP '[^\x00-\x7F]' "$f"; then
+              echo "::error file=$f::Non-ASCII characters found. PowerShell 5.1 may misparse this file."
+              LC_ALL=C grep -nP '[^\x00-\x7F]' "$f" | head -5
+              fail=1
+            fi
+          done < <(find . -name '*.ps1' -not -path './.git/*')
+          [ "$fail" -eq 0 ] && echo "All .ps1 files are ASCII-only."
+          exit $fail
+
       - name: Validate provisioning script syntax
         shell: pwsh
         run: |
-          $path = 'm365-knowledge-architecture/provisioning/Provision-KMSite.ps1'
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$errors) | Out-Null
-          if ($errors) {
-            $errors | ForEach-Object { Write-Host "::error::$($_.Message)" }
-            exit 1
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+            if ($errors) {
+              $errors | ForEach-Object { Write-Host "::error::$($_.Message)" }
+              $failed = $true
+            } else {
+              Write-Host "OK  $($_.Name)"
+            }
           }
-          Write-Host "Script parses cleanly."
+          if ($failed) { exit 1 }
 
       - name: Provision site
         if: ${{ inputs.dry_run == false }}
