@@ -38,13 +38,21 @@ jobs:
           # far from the actual character. Keep .ps1 files pure ASCII.
           fail=0
           while IFS= read -r f; do
-            if LC_ALL=C grep -qP '[^\x00-\x7F]' "$f"; then
+            # A leading UTF-8 BOM is intentional and expected; skip it before
+            # scanning so the BOM's own bytes are not reported as a violation.
+            if [ "$(head -c3 "$f" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
+              body=$(tail -c +4 "$f")
+            else
+              body=$(cat "$f")
+              echo "::warning file=$f::No UTF-8 BOM. Add one so PowerShell 5.1 cannot fall back to ANSI."
+            fi
+            if printf '%s' "$body" | LC_ALL=C grep -qP '[^\x00-\x7F]'; then
               echo "::error file=$f::Non-ASCII characters found. PowerShell 5.1 may misparse this file."
-              LC_ALL=C grep -nP '[^\x00-\x7F]' "$f" | head -5
+              printf '%s' "$body" | LC_ALL=C grep -nP '[^\x00-\x7F]' | head -5
               fail=1
             fi
           done < <(find . -name '*.ps1' -not -path './.git/*')
-          [ "$fail" -eq 0 ] && echo "All .ps1 files are ASCII-only."
+          [ "$fail" -eq 0 ] && echo "All .ps1 files are ASCII-only (BOM excluded)."
           exit $fail
 
       - name: Validate provisioning script syntax
