@@ -10,6 +10,23 @@
 
 ## Phase 0 — Setup
 
+### Fastest path: one command
+
+```powershell
+git clone https://github.com/danirivasf/TestDaniela.git
+cd TestDaniela
+git checkout claude/m365-knowledge-automation-a7ahvl
+.\m365-knowledge-architecture\provisioning\Start-KMProvisioning.ps1
+```
+
+The script checks Node and installs the Claude Code CLI if missing, walks you through the device-code login while *waiting properly* for you, verifies the result, distinguishes a Conditional Access refusal from an admin-consent block, and then launches Claude Code with this runbook loaded.
+
+Add `-ReadOnly` for an inspection-only first pass with no writes.
+
+If it works, skip to Phase 1. The manual steps below are the fallback.
+
+---
+
 ### 0.1 Clone and check out
 
 ```bash
