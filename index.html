@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product Licensing — Working Prototypes</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1A1A1F; --ink2:#222229; --ink3:#2A2A33; --line:#34343E;
+  --paper:#F4F5F7; --grey:#B2B8C4; --dim:#7E8494;
+  --cyan:#00FFFF; --magenta:#FF00C7; --purple:#9933FF;
+  --green:#3DDC97; --amber:#FFB454; --red:#FF6B6B;
+}
+body{background:var(--ink);color:var(--paper);font-family:'Archivo',-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.55;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',Consolas,monospace}
+.wrap{max-width:940px;margin:0 auto;padding:0 20px 70px}
+.mast{border-bottom:1px solid var(--line);padding:40px 0 24px;margin-bottom:24px}
+.mast .inner{max-width:940px;margin:0 auto;padding:0 20px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:11px}
+.mast h1{font-size:27px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.mast .sub{color:var(--grey);font-size:13.5px;margin-top:9px;max-width:720px}
+.banner{display:flex;align-items:center;gap:9px;margin-top:18px;border:1px solid rgba(255,180,84,.4);background:rgba(255,180,84,.06);border-radius:9px;padding:9px 13px;font-size:12px;color:var(--grey)}
+.banner b{color:var(--amber);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.cards{display:flex;flex-direction:column;gap:14px}
+a.card{display:block;background:var(--ink2);border:1px solid var(--line);border-radius:13px;padding:18px 20px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+a.card:hover{border-color:var(--dim);transform:translateY(-1px)}
+.card .top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.card .tag{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:20px;padding:3px 10px}
+.tag.spec{background:rgba(0,255,255,.1);color:var(--cyan)}
+.tag.proto{background:rgba(61,220,151,.12);color:var(--green)}
+.tag.straw{background:rgba(255,180,84,.12);color:var(--amber)}
+.card h2{font-size:16px;font-weight:700}
+.card p{color:var(--grey);font-size:13px;max-width:640px}
+.card .go{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);margin-top:9px}
+a.card:hover .go{color:var(--paper)}
+.footer{border-top:1px solid var(--line);margin-top:34px;padding-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--dim);display:flex;gap:20px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header class="mast"><div class="inner">
+  <div class="eyebrow">Octave · Pricing and Commercial Strategy</div>
+  <h1>Product Licensing — Working Prototypes</h1>
+  <div class="sub">The scoping artifact, the interactive intake clay model, and the pre-quote pricing straw man — one place to open all three. Clay models: prototypes for reaction, running on invented data.</div>
+  <div class="banner"><b>Internal</b> Working drafts on anonymized data. Not for external distribution. Access-controlled link.</div>
+</div></header>
+
+<div class="wrap">
+  <div class="cards">
+    <a class="card" href="/clay-model/">
+      <div class="top"><span class="tag proto">Interactive prototype</span><h2>Intake clay model</h2></div>
+      <p>The working prototype: submit a request, watch it triage and route (fast track vs full review), run the cross-functional relevance check, approve in two steps, execute under guardrails, and read the timestamped audit trail. Fake data; a persona switcher simulates all three roles.</p>
+      <div class="go">Open the prototype →</div>
+    </a>
+    <a class="card" href="/spec/product-licensing-intake-scoping">
+      <div class="top"><span class="tag spec">Scoping artifact</span><h2>Product licensing intake — scoping</h2></div>
+      <p>The five-tab scoping draft: current state, the target workflow, the Salesforce-vs-Claude-Code platform decision, the benchmark, and the questions for the Business IT scoping call.</p>
+      <div class="go">Open the scoping doc →</div>
+    </a>
+    <a class="card" href="/pre-quote-pricing/request-type-catalog">
+      <div class="top"><span class="tag straw">Straw man</span><h2>Pre-quote pricing — request-type catalog</h2></div>
+      <p>Sibling workstream: the six pre-quote pricing request types, their fields, routing, and where each breaks today — built to be argued with at the scoping call, not approved.</p>
+      <div class="go">Open the catalog →</div>
+    </a>
+  </div>
+
+  <div class="footer">
+    <span>Internal · anonymized data · not for external distribution</span>
+    <span>Pricing and Commercial Strategy · Octave</span>
+  </div>
+</div>
+</body>
+</html>
