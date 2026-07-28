@@ -31,6 +31,26 @@ npx -y @softeria/ms-365-mcp-server --org-mode --list-permissions
 
 Then restart Claude Code. Run `/mcp` to confirm `ms365` shows as connected.
 
+### Known constraint: Conditional Access blocks non-managed devices
+
+**Confirmed in this tenant.** Attempting the device-code login from a cloud container returned:
+
+> Your sign-in was successful but does not meet the criteria to access this resource. For example, you might be signing in from a browser, app, or location that is restricted by your admin.
+
+The credentials authenticate fine; a Conditional Access policy then refuses to issue the token. Octave's tenant requires a compliant/managed device, an approved client app, or a named network location.
+
+**What this means in practice:**
+
+| Where you run it | Expected result |
+|---|---|
+| Your managed Octave laptop, on corporate network or VPN | Should work — this is the supported path |
+| Cloud container, CI runner, personal device | Blocked by Conditional Access |
+| GitHub Actions with **app-only certificate** auth | Likely works — CA policies apply to users, and workload-identity CA is a separate, less commonly configured feature |
+
+So: run the MCP server locally, and use the service principal for automation. See `provisioning/LOCAL-RUNBOOK.md` for the local path and `DEPLOY.md` for the service-principal path.
+
+If your laptop is also refused, the policy is app-based rather than device-based — register your own app (below) so the client is one your tenant recognises.
+
 ### If your tenant blocks the default app registration
 
 Some tenants require admin consent before a third-party app can request Graph scopes. If login fails with a consent error, register your own app and point the server at it:

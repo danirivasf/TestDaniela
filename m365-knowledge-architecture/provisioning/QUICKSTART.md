@@ -2,6 +2,10 @@
 
 Your target site: **https://octaveint.sharepoint.com/sites/DaniandEthan**
 
+> **Two ways to provision.** This file is the **PowerShell / PnP** route. If PnP has given you trouble, use **[`LOCAL-RUNBOOK.md`](LOCAL-RUNBOOK.md)** instead — it provisions the same structure through Microsoft Graph via the `ms365` MCP server, needs no PowerShell modules, and additionally validates the series model against your real calendar and transcripts.
+>
+> The two are complementary, not exclusive: Graph can't create list **views**, and PnP can. A good combination is Graph for everything, then `Provision-KMSite.ps1` §3b for the views.
+
 ---
 
 ## Prerequisites (one-time, 5 min)

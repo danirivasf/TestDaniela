@@ -12,6 +12,7 @@ Target site: `https://octaveint.sharepoint.com/sites/DaniandEthan`
 |---|---|
 | Understand how it all deploys and gets shared with teammates | **[`DEPLOY.md`](DEPLOY.md)** |
 | Connect Claude to your M365 tenant | **[`MCP-SETUP.md`](MCP-SETUP.md)** |
+| Provision the site from your own laptop, step by step | **[`provisioning/LOCAL-RUNBOOK.md`](provisioning/LOCAL-RUNBOOK.md)** |
 | Understand recurring-meeting storage | **[`meetings/meeting-series-model.md`](meetings/meeting-series-model.md)** |
 | Get an AI to build the automations for you | **[`automation/copilot-studio-build-prompt.md`](automation/copilot-studio-build-prompt.md)** |
 | Provision SharePoint right now | [`provisioning/QUICKSTART.md`](provisioning/QUICKSTART.md) |
