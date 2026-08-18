@@ -6,9 +6,12 @@ A runnable version of Blueprint 1. No dependencies, no API key, Python 3.10+.
 python3 value_calculator.py           # internal one-page summary (markdown)
 python3 value_calculator.py --json    # structured output for the narrative prompt
 python3 eval_cases.py                 # 28 eval cases -- run after any policy change
+python3 check_parity.py               # proves the JS mirror matches the Python
+python3 build_dashboard.py            # regenerate dashboard.html, then open it
 ```
 
-All 28 cases currently pass, and `--json` output validates as strict JSON.
+All 28 eval cases pass, `--json` validates as strict JSON, and the parity check
+agrees across 1,440 deals.
 
 ## Files
 
@@ -17,6 +20,29 @@ All 28 cases currently pass, and `--json` output validates as strict JSON.
 | `value_calculator.py` | Deterministic core. Every customer-visible number lives here |
 | `eval_cases.py` | The eval set. Edge cases, especially "must escalate" ones |
 | `prompts/narrative.md` | The LLM layer: turns the JSON into a value narrative and deal summary |
+| `pricing_model.js` | Browser mirror of the math, so the dashboard recomputes live |
+| `check_parity.py` | Runs both implementations over 1,440 deals; fails on any disagreement |
+| `build_dashboard.py` | Generates `dashboard.html` from the Python policy + the JS model |
+| `dashboard.html` | Generated. Single file, no dependencies — open it in a browser |
+
+## The dashboard
+
+`dashboard.html` is a self-contained interactive view: sliders for segment, term,
+seats, discount asked, and the value estimate, with a hero price, KPI tiles, an
+approval verdict chip, and three charts that recompute live. Light and dark mode,
+keyboard-accessible tooltips, and a table view of every chart.
+
+Single-file HTML was chosen because it is the only format you can put on a
+SharePoint page, email to a stakeholder, or open in three years without a build
+step. See `../../05-visualizing-calculators.md` for the alternatives (Excel,
+Streamlit, Power BI) and when each is the better call.
+
+**The duplication risk is real and is handled.** Live interactivity means the
+pricing math must also exist in JavaScript. Two copies of a discount floor is how
+you end up telling an AE that 22% is fine while the deal desk says escalate. So:
+policy constants are injected from `value_calculator.py` at build time (the JS
+never hardcodes a floor), and `check_parity.py` fails the build if the two
+implementations disagree on any price or — especially — any approval verdict.
 
 ## The point of the structure
 

@@ -17,7 +17,8 @@ page. That changes which 15% of the list is worth your time.
 | `02-patterns-cheatsheet.md` | The concepts distilled — no video required. Read this before you read anything on the list |
 | `03-project-blueprints.md` | Five concrete things to build, in order of value-to-effort, with the pattern each one uses |
 | `04-sharepoint-and-m365.md` | The specific "automate comms on a SharePoint page" path, honestly assessed |
-| `examples/pricing_calculator/` | A working, dependency-free value/pricing calculator you can run today |
+| `05-visualizing-calculators.md` | Turning a calculator into something usable in a deal review or on a SharePoint page |
+| `examples/pricing_calculator/` | A working, dependency-free value/pricing calculator, plus an interactive dashboard |
 
 ## The 20% that matters
 
@@ -67,7 +68,8 @@ not an agent problem" and mean it.
 
 **Week 2 — One deterministic tool.** Run the calculator in `examples/`, then rewrite
 it around a real pricing model you own. No LLM yet. Goal: a script that turns inputs
-into a defensible price band.
+into a defensible price band — and, via `build_dashboard.py`, a page you can put in
+front of someone (`05-visualizing-calculators.md`).
 
 **Week 3 — Add the LLM shell.** Wrap the calculator with a prompt that drafts the
 value narrative and the internal deal summary. Compare against three real proposals

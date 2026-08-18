@@ -345,10 +345,10 @@ EXAMPLE_DEAL = Deal(
             basis="contract value of the two tools this replaces, confirmed in writing",
         ),
         ValueDriver(
-            name="Faster quote turnaround -> win-rate uplift",
+            name="Faster quote turnaround",
             annual_value=300_000,
             confidence=0.3,
-            basis="inferred; not defensible without their win-rate data",
+            basis="assumed win-rate uplift; inferred, not defensible without their win-rate data",
         ),
     ],
 )
